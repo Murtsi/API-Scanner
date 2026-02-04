@@ -65,6 +65,78 @@ const PATTERNS = [
     regex: /(?:password|passwd|pwd)\s*[:=]\s*["'`]?([^\s"'`]{6,})["'`]?/gi,
     example: "password=supersecret",
   },
+  {
+    name: "GitHub Token",
+    severity: "danger",
+    regex: /gh[pousr]_[A-Za-z0-9]{36,}/g,
+    example: "ghp_...",
+  },
+  {
+    name: "GitLab Token",
+    severity: "danger",
+    regex: /glpat-[A-Za-z0-9_-]{20,}/g,
+    example: "glpat-...",
+  },
+  {
+    name: "Firebase Server Key",
+    severity: "warning",
+    regex: /AAAA[A-Za-z0-9_-]{7}:[A-Za-z0-9_-]{140,}/g,
+    example: "AAAA...:...",
+  },
+  {
+    name: "Twilio API Key",
+    severity: "danger",
+    regex: /SK[0-9a-fA-F]{32}/g,
+    example: "SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  },
+  {
+    name: "SendGrid API Key",
+    severity: "danger",
+    regex: /SG\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/g,
+    example: "SG.xxx.xxx",
+  },
+  {
+    name: "Mailgun API Key",
+    severity: "warning",
+    regex: /key-[0-9a-fA-F]{32}/g,
+    example: "key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  },
+  {
+    name: "Heroku API Key",
+    severity: "danger",
+    regex: /heroku[a-z0-9]{20,}/gi,
+    example: "heroku...",
+  },
+  {
+    name: "Stripe Test Key",
+    severity: "warning",
+    regex: /sk_test_[0-9a-zA-Z]{24,}/g,
+    example: "sk_test_...",
+  },
+  {
+    name: "Azure Storage Key",
+    severity: "warning",
+    regex: /AccountKey=([A-Za-z0-9+/=]{88})/g,
+    example: "AccountKey=...",
+  },
+  {
+    name: "JWT Refresh Token",
+    severity: "warning",
+    regex: /refresh_token\s*[:=]\s*["'`]?([A-Za-z0-9_-]{20,})["'`]?/gi,
+    example: "refresh_token=...",
+  },
+  {
+    name: "Suspicious Key Assignment",
+    severity: "warning",
+    regex: /(?:api[_-]?key|secret|token|access[_-]?key|private[_-]?key)\s*[:=]\s*["'`]?([A-Za-z0-9+/=_-]{24,})["'`]?/gi,
+    example: "token=...",
+  },
+  {
+    name: "High-Entropy String",
+    severity: "warning",
+    regex: /[A-Za-z0-9+/=_-]{40,}/g,
+    example: "<long random string>",
+  },
 ];
 
 export default function App() {

@@ -79,7 +79,7 @@ h1 {
 .container {
   width: min(1100px, 100%);
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns: 1.1fr 0.9fr;
   gap: 22px;
 }
 

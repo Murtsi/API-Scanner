@@ -6,7 +6,7 @@
 ![Tech](https://img.shields.io/badge/react-vite-black)
 ![License](https://img.shields.io/badge/license-MIT-red)
 
-A fast, client‑side scanner that searches public pages for exposed keys, tokens, and hardcoded secrets. The UI uses a dark, red‑accented theme designed for quick triage.
+A fast, client‑side scanner that searches public pages for exposed keys, tokens, and hardcoded secrets.
 
 ---
 

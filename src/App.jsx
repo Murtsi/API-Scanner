@@ -4,7 +4,7 @@ import ScannerPanel from "./components/ScannerPanel.jsx";
 import ResultsPanel from "./components/ResultsPanel.jsx";
 import RulesPanel from "./components/RulesPanel.jsx";
 
-const PATTERNS = [
+const BASE_RULES = [
   {
     name: "Generic API Key",
     severity: "warning",
@@ -40,6 +40,12 @@ const PATTERNS = [
     severity: "danger",
     regex: /sk_live_[0-9a-zA-Z]{24,}/g,
     example: "sk_live_...",
+  },
+  {
+    name: "Stripe Test Key",
+    severity: "warning",
+    regex: /sk_test_[0-9a-zA-Z]{24,}/g,
+    example: "sk_test_...",
   },
   {
     name: "Google API Key",
@@ -108,12 +114,6 @@ const PATTERNS = [
     example: "heroku...",
   },
   {
-    name: "Stripe Test Key",
-    severity: "warning",
-    regex: /sk_test_[0-9a-zA-Z]{24,}/g,
-    example: "sk_test_...",
-  },
-  {
     name: "Azure Storage Key",
     severity: "warning",
     regex: /AccountKey=([A-Za-z0-9+/=]{88})/g,
@@ -131,13 +131,65 @@ const PATTERNS = [
     regex: /(?:api[_-]?key|secret|token|access[_-]?key|private[_-]?key)\s*[:=]\s*["'`]?([A-Za-z0-9+/=_-]{24,})["'`]?/gi,
     example: "token=...",
   },
-  {
-    name: "High-Entropy String",
-    severity: "warning",
-    regex: /[A-Za-z0-9+/=_-]{40,}/g,
-    example: "<long random string>",
-  },
 ];
+
+const EXPOSED_PATHS = [
+  "/.env",
+  "/.env.local",
+  "/.git/config",
+  "/config.json",
+  "/settings.json",
+  "/swagger.json",
+  "/openapi.json",
+  "/swagger/v1/swagger.json",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/backup.zip",
+  "/backup.tar.gz",
+];
+
+const MAX_ASSETS = 10;
+const MAX_MATCHES = 6;
+const MAX_ENTROPY_MATCHES = 8;
+const ENTROPY_THRESHOLD = 3.6;
+
+const safeRegex = (pattern, flags) => {
+  try {
+    const cleanFlags = flags.includes("g") ? flags : `${flags}g`;
+    return new RegExp(pattern, cleanFlags);
+  } catch {
+    return null;
+  }
+};
+
+const parseUrls = (value) =>
+  value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+const getEntropy = (value) => {
+  const counts = new Map();
+  for (const char of value) {
+    counts.set(char, (counts.get(char) || 0) + 1);
+  }
+  const length = value.length;
+  let entropy = 0;
+  for (const count of counts.values()) {
+    const p = count / length;
+    entropy -= p * Math.log2(p);
+  }
+  return entropy;
+};
+
+const buildCsv = (rows) =>
+  rows
+    .map((row) =>
+      row
+        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+        .join(",")
+    )
+    .join("\n");
 
 export default function App() {
   const [urlsInput, setUrlsInput] = useState("");
@@ -149,14 +201,47 @@ export default function App() {
     scanAssets: true,
     checkExposed: true,
   });
-  const patterns = useMemo(() => PATTERNS, []);
 
-  const urls = useMemo(() => {
-    return urlsInput
+  const urls = useMemo(() => parseUrls(urlsInput), [urlsInput]);
+
+  const customRules = useMemo(() => {
+    return customRulesInput
       .split(/\r?\n/)
       .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line, index) => {
+        let name = `Custom Rule ${index + 1}`;
+        let patternText = line;
+        let flags = "g";
+
+        if (line.includes("::")) {
+          const [left, right] = line.split("::").map((part) => part.trim());
+          name = left || name;
+          patternText = right || "";
+        }
+
+        if (!patternText) return null;
+
+        if (patternText.startsWith("/") && patternText.lastIndexOf("/") > 0) {
+          const lastSlash = patternText.lastIndexOf("/");
+          flags = patternText.slice(lastSlash + 1) || "g";
+          patternText = patternText.slice(1, lastSlash);
+        }
+
+        const regex = safeRegex(patternText, flags);
+        if (!regex) return null;
+
+        return {
+          name,
+          severity: "warning",
+          regex,
+          example: patternText,
+        };
+      })
       .filter(Boolean);
-  }, [urlsInput]);
+  }, [customRulesInput]);
+
+  const rules = useMemo(() => [...BASE_RULES, ...customRules], [customRules]);
 
   const updateStatus = (url, status, badge) => {
     setStatusRows((prev) => {
@@ -170,94 +255,27 @@ export default function App() {
     });
   };
 
-  const parseCustomRules = () => {
-    const lines = customRulesInput
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    const rules = [];
-    lines.forEach((line, index) => {
-      let name = `Custom Rule ${index + 1}`;
-      let patternText = line;
-      let flags = "g";
-
-      if (line.includes("::")) {
-        const [left, right] = line.split("::").map((part) => part.trim());
-        name = left || name;
-        patternText = right || "";
-      }
-
-      if (!patternText) {
-        return;
-      }
-
-      if (patternText.startsWith("/") && patternText.lastIndexOf("/") > 0) {
-        const lastSlash = patternText.lastIndexOf("/");
-        flags = patternText.slice(lastSlash + 1) || "g";
-        patternText = patternText.slice(1, lastSlash);
-      }
-
-      try {
-        const regex = new RegExp(patternText, flags.includes("g") ? flags : `${flags}g`);
-        rules.push({
-          name,
-          severity: "warning",
-          regex,
-          example: patternText,
-        });
-      } catch {
-        // ignore invalid regex
-      }
-    });
-
-    return rules;
-  };
-
-  const customRules = useMemo(() => parseCustomRules(), [customRulesInput]);
-
-  const combinedPatterns = useMemo(() => {
-    return [...patterns, ...customRules];
-  }, [patterns, customRules]);
-
-  const shannonEntropy = (value) => {
-    const map = new Map();
-    for (const char of value) {
-      map.set(char, (map.get(char) || 0) + 1);
-    }
-    const length = value.length;
-    let entropy = 0;
-    for (const count of map.values()) {
-      const p = count / length;
-      entropy -= p * Math.log2(p);
-    }
-    return entropy;
-  };
-
-  const findHighEntropyStrings = (content) => {
-    const matches = content.match(/[A-Za-z0-9+/=_-]{40,}/g) || [];
-    const findings = matches.filter((match) => shannonEntropy(match) >= 3.6);
-    return findings.slice(0, 8).map((match) => match);
-  };
-
-  const extractMatches = (content, sourceLabel = "HTML") => {
-    const findings = combinedPatterns
+  const extractFindings = (content, sourceLabel) => {
+    const matches = rules
       .map((rule) => {
-        const matches = [...content.matchAll(rule.regex)];
-        if (!matches.length) return null;
+        const found = [...content.matchAll(rule.regex)];
+        if (!found.length) return null;
         return {
           rule: rule.name,
           severity: rule.severity,
-          matches: matches.map((match) => match[0]).slice(0, 6),
-          total: matches.length,
+          matches: found.map((match) => match[0]).slice(0, MAX_MATCHES),
+          total: found.length,
           source: sourceLabel,
         };
       })
       .filter(Boolean);
 
-    const entropyMatches = findHighEntropyStrings(content);
+    const entropyMatches = (content.match(/[A-Za-z0-9+/=_-]{40,}/g) || [])
+      .filter((match) => getEntropy(match) >= ENTROPY_THRESHOLD)
+      .slice(0, MAX_ENTROPY_MATCHES);
+
     if (entropyMatches.length) {
-      findings.push({
+      matches.push({
         rule: "High-Entropy String",
         severity: "warning",
         matches: entropyMatches,
@@ -266,10 +284,10 @@ export default function App() {
       });
     }
 
-    return findings;
+    return matches;
   };
 
-  const extractAssetUrls = (html, baseUrl) => {
+  const extractAssets = (html, baseUrl) => {
     try {
       const doc = new DOMParser().parseFromString(html, "text/html");
       const scripts = Array.from(doc.querySelectorAll("script[src]")).map((el) => el.getAttribute("src"));
@@ -277,75 +295,62 @@ export default function App() {
       const candidates = [...scripts, ...links]
         .filter(Boolean)
         .filter((src) => src.endsWith(".js") || src.includes(".js?"));
-
       const urls = candidates.map((src) => new URL(src, baseUrl).toString());
-      return Array.from(new Set(urls)).slice(0, 10);
+      return Array.from(new Set(urls)).slice(0, MAX_ASSETS);
     } catch {
       return [];
     }
   };
 
-  const checkCommonPaths = async (url) => {
-    const paths = [
-      "/.env",
-      "/.env.local",
-      "/.git/config",
-      "/config.json",
-      "/settings.json",
-      "/swagger.json",
-      "/openapi.json",
-      "/swagger/v1/swagger.json",
-      "/robots.txt",
-      "/sitemap.xml",
-      "/backup.zip",
-      "/backup.tar.gz",
-    ];
-
+  const checkExposedFiles = async (url) => {
     try {
       const origin = new URL(url).origin;
-      const checks = [];
+      const hits = [];
 
-      for (const path of paths) {
+      for (const path of EXPOSED_PATHS) {
         const target = `${origin}${path}`;
         try {
           const response = await fetch(target, { method: "GET", mode: "cors" });
           if (response.ok) {
-            checks.push({ path, status: response.status });
+            hits.push({ path, status: response.status });
           }
         } catch {
-          // ignore fetch errors for these paths
+          // ignore fetch errors
         }
       }
 
-      return checks;
+      return hits;
     } catch {
       return [];
     }
   };
 
-  const scanUrl = async (url) => {
+  const scanTarget = async (url) => {
     updateStatus(url, "Scanning", "warning");
+
     try {
       const response = await fetch(url, { mode: "cors" });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      const text = await response.text();
-      const findings = extractMatches(text, "HTML");
-      let assetFindings = [];
+
+      const html = await response.text();
+      const findings = extractFindings(html, "HTML");
       let assetsScanned = 0;
+      let assetFindings = [];
       let exposedFiles = [];
 
       if (scanOptions.scanAssets) {
-        const assetUrls = extractAssetUrls(text, url);
+        const assetUrls = extractAssets(html, url);
         assetsScanned = assetUrls.length;
+
         for (const assetUrl of assetUrls) {
           try {
             const assetResponse = await fetch(assetUrl, { mode: "cors" });
             if (!assetResponse.ok) continue;
             const assetText = await assetResponse.text();
             assetFindings = assetFindings.concat(
-              extractMatches(assetText, `Asset: ${assetUrl}`)
+              extractFindings(assetText, `Asset: ${assetUrl}`)
             );
           } catch {
             // ignore asset fetch errors
@@ -354,16 +359,15 @@ export default function App() {
       }
 
       if (scanOptions.checkExposed) {
-        exposedFiles = await checkCommonPaths(url);
+        exposedFiles = await checkExposedFiles(url);
       }
 
-      const mergedFindings = [...findings, ...assetFindings];
       updateStatus(url, "Done", "success");
       setResults((prev) => [
         ...prev,
         {
           url,
-          findings: mergedFindings,
+          findings: [...findings, ...assetFindings],
           assetsScanned,
           exposedFiles,
           error: null,
@@ -395,7 +399,7 @@ export default function App() {
     setScanSummary(`Scanning ${urls.length} URL${urls.length > 1 ? "s" : ""}...`);
 
     for (const url of urls) {
-      await scanUrl(url);
+      await scanTarget(url);
     }
 
     setScanSummary("Scan complete");
@@ -419,9 +423,7 @@ export default function App() {
   };
 
   const exportCsv = () => {
-    const rows = [
-      ["URL", "Rule", "Severity", "Source", "Match"],
-    ];
+    const rows = [["URL", "Rule", "Severity", "Source", "Match"]];
 
     results.forEach((result) => {
       result.findings.forEach((finding) => {
@@ -437,8 +439,7 @@ export default function App() {
       });
     });
 
-    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    const blob = new Blob([buildCsv(rows)], { type: "text/csv" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = "scan-results.csv";
@@ -466,7 +467,7 @@ export default function App() {
           />
           <ResultsPanel results={results} />
         </section>
-        <RulesPanel patterns={combinedPatterns} />
+        <RulesPanel patterns={rules} />
       </div>
       <footer>Built for quick reconnaissance. Always handle discoveries responsibly.</footer>
     </div>

@@ -3,8 +3,8 @@ export default function RulesPanel({ patterns }) {
     <aside className="card">
       <h2>Detection rules</h2>
       <p className="muted">
-        This scanner detects common patterns. It does not guarantee
-        completeness.
+        Built-in rules plus any custom regex you add below. Results are best
+        effort and may include false positives.
       </p>
 
       <div className="legend">

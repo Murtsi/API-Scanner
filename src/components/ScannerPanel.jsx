@@ -14,10 +14,10 @@ export default function ScannerPanel({
 }) {
   return (
     <div className="scanner">
-      <h2>Scan websites</h2>
+      <h2>Target list</h2>
       <p className="muted">
-        Paste one URL per line. The scanner fetches HTML and searches for
-        common API key, token, and secret patterns.
+        One URL per line. The scan checks HTML, optional JS assets, and common
+        exposed files for secrets and keys.
       </p>
 
       <textarea
@@ -56,7 +56,11 @@ export default function ScannerPanel({
       </div>
 
       <div className="custom-rules">
-        <label className="muted small">Custom regex rules (one per line, optional name with Name::/pattern/flags)</label>
+        <label className="muted small">
+          Custom regex rules (optional, one per line). Format:
+          <br />
+          Name::/pattern/flags
+        </label>
         <textarea
           value={customRulesInput}
           onChange={(event) => setCustomRulesInput(event.target.value)}

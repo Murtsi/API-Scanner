@@ -1,16 +1,16 @@
 :root {
   color-scheme: light dark;
-  --bg: #0b0f1a;
-  --card: #12192b;
-  --muted: #8ea0c7;
-  --text: #e8eefc;
-  --accent: #7aa2ff;
-  --accent-2: #3ee6c2;
-  --danger: #ff6b6b;
-  --warning: #ffb86b;
-  --success: #41d17c;
-  --border: #1f2b46;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --bg: #050505;
+  --card: #0c0c0c;
+  --muted: #8b8b8b;
+  --text: #f2f2f2;
+  --accent: #ff2d2d;
+  --accent-2: #8b0000;
+  --danger: #ff2d2d;
+  --warning: #ff6b6b;
+  --success: #ff8f8f;
+  --border: #ff2d2d;
+  --shadow: 0 10px 30px rgba(255, 45, 45, 0.2);
 }
 
 * {
@@ -23,12 +23,12 @@ body {
     sans-serif;
   background: radial-gradient(
       1200px 700px at 10% -10%,
-      rgba(122, 162, 255, 0.25),
+      rgba(255, 45, 45, 0.15),
       transparent 60%
     ),
     radial-gradient(
       900px 500px at 100% 0%,
-      rgba(62, 230, 194, 0.18),
+      rgba(139, 0, 0, 0.2),
       transparent 60%
     ),
     var(--bg);
@@ -104,7 +104,7 @@ textarea {
   width: 100%;
   min-height: 160px;
   border-radius: 12px;
-  background: #0b1222;
+  background: #090909;
   border: 1px solid var(--border);
   color: var(--text);
   padding: 12px;
@@ -124,7 +124,7 @@ textarea {
 button {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   border: none;
-  color: #09111f;
+  color: #0d0d0d;
   font-weight: 600;
   padding: 10px 16px;
   border-radius: 10px;
@@ -148,7 +148,7 @@ button.secondary {
   gap: 6px;
   padding: 6px 10px;
   border-radius: 999px;
-  background: #0b1222;
+  background: #0a0a0a;
   border: 1px solid var(--border);
   font-size: 0.85rem;
   color: var(--muted);
@@ -164,7 +164,7 @@ button.secondary {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #0b1222;
+  background: #0a0a0a;
   border-radius: 12px;
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -203,7 +203,7 @@ button.secondary {
 }
 
 .result-card {
-  background: #0b1222;
+  background: #0a0a0a;
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 14px;
@@ -229,7 +229,7 @@ button.secondary {
 }
 
 .highlight {
-  color: var(--warning);
+  color: var(--danger);
   font-weight: 600;
   word-break: break-all;
 }
@@ -250,8 +250,53 @@ button.secondary {
   font-size: 0.9rem;
   padding: 8px 10px;
   border-radius: 10px;
-  background: #0b1222;
+  background: #0a0a0a;
   border: 1px solid var(--border);
+}
+
+.options {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 6px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.custom-rules {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.custom-rules textarea {
+  min-height: 110px;
+}
+
+.exposed {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #0a0a0a;
+}
+
+.exposed ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.exposed li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .notes {

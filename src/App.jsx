@@ -144,6 +144,11 @@ export default function App() {
   const [scanSummary, setScanSummary] = useState("Idle");
   const [statusRows, setStatusRows] = useState([]);
   const [results, setResults] = useState([]);
+  const [customRulesInput, setCustomRulesInput] = useState("");
+  const [scanOptions, setScanOptions] = useState({
+    scanAssets: true,
+    checkExposed: true,
+  });
   const patterns = useMemo(() => PATTERNS, []);
 
   const urls = useMemo(() => {
@@ -165,8 +170,78 @@ export default function App() {
     });
   };
 
-  const extractMatches = (content) => {
-    return patterns
+  const parseCustomRules = () => {
+    const lines = customRulesInput
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    const rules = [];
+    lines.forEach((line, index) => {
+      let name = `Custom Rule ${index + 1}`;
+      let patternText = line;
+      let flags = "g";
+
+      if (line.includes("::")) {
+        const [left, right] = line.split("::").map((part) => part.trim());
+        name = left || name;
+        patternText = right || "";
+      }
+
+      if (!patternText) {
+        return;
+      }
+
+      if (patternText.startsWith("/") && patternText.lastIndexOf("/") > 0) {
+        const lastSlash = patternText.lastIndexOf("/");
+        flags = patternText.slice(lastSlash + 1) || "g";
+        patternText = patternText.slice(1, lastSlash);
+      }
+
+      try {
+        const regex = new RegExp(patternText, flags.includes("g") ? flags : `${flags}g`);
+        rules.push({
+          name,
+          severity: "warning",
+          regex,
+          example: patternText,
+        });
+      } catch {
+        // ignore invalid regex
+      }
+    });
+
+    return rules;
+  };
+
+  const customRules = useMemo(() => parseCustomRules(), [customRulesInput]);
+
+  const combinedPatterns = useMemo(() => {
+    return [...patterns, ...customRules];
+  }, [patterns, customRules]);
+
+  const shannonEntropy = (value) => {
+    const map = new Map();
+    for (const char of value) {
+      map.set(char, (map.get(char) || 0) + 1);
+    }
+    const length = value.length;
+    let entropy = 0;
+    for (const count of map.values()) {
+      const p = count / length;
+      entropy -= p * Math.log2(p);
+    }
+    return entropy;
+  };
+
+  const findHighEntropyStrings = (content) => {
+    const matches = content.match(/[A-Za-z0-9+/=_-]{40,}/g) || [];
+    const findings = matches.filter((match) => shannonEntropy(match) >= 3.6);
+    return findings.slice(0, 8).map((match) => match);
+  };
+
+  const extractMatches = (content, sourceLabel = "HTML") => {
+    const findings = combinedPatterns
       .map((rule) => {
         const matches = [...content.matchAll(rule.regex)];
         if (!matches.length) return null;
@@ -175,9 +250,77 @@ export default function App() {
           severity: rule.severity,
           matches: matches.map((match) => match[0]).slice(0, 6),
           total: matches.length,
+          source: sourceLabel,
         };
       })
       .filter(Boolean);
+
+    const entropyMatches = findHighEntropyStrings(content);
+    if (entropyMatches.length) {
+      findings.push({
+        rule: "High-Entropy String",
+        severity: "warning",
+        matches: entropyMatches,
+        total: entropyMatches.length,
+        source: sourceLabel,
+      });
+    }
+
+    return findings;
+  };
+
+  const extractAssetUrls = (html, baseUrl) => {
+    try {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const scripts = Array.from(doc.querySelectorAll("script[src]")).map((el) => el.getAttribute("src"));
+      const links = Array.from(doc.querySelectorAll("link[href]")).map((el) => el.getAttribute("href"));
+      const candidates = [...scripts, ...links]
+        .filter(Boolean)
+        .filter((src) => src.endsWith(".js") || src.includes(".js?"));
+
+      const urls = candidates.map((src) => new URL(src, baseUrl).toString());
+      return Array.from(new Set(urls)).slice(0, 10);
+    } catch {
+      return [];
+    }
+  };
+
+  const checkCommonPaths = async (url) => {
+    const paths = [
+      "/.env",
+      "/.env.local",
+      "/.git/config",
+      "/config.json",
+      "/settings.json",
+      "/swagger.json",
+      "/openapi.json",
+      "/swagger/v1/swagger.json",
+      "/robots.txt",
+      "/sitemap.xml",
+      "/backup.zip",
+      "/backup.tar.gz",
+    ];
+
+    try {
+      const origin = new URL(url).origin;
+      const checks = [];
+
+      for (const path of paths) {
+        const target = `${origin}${path}`;
+        try {
+          const response = await fetch(target, { method: "GET", mode: "cors" });
+          if (response.ok) {
+            checks.push({ path, status: response.status });
+          }
+        } catch {
+          // ignore fetch errors for these paths
+        }
+      }
+
+      return checks;
+    } catch {
+      return [];
+    }
   };
 
   const scanUrl = async (url) => {
@@ -188,13 +331,41 @@ export default function App() {
         throw new Error(`HTTP ${response.status}`);
       }
       const text = await response.text();
-      const findings = extractMatches(text);
+      const findings = extractMatches(text, "HTML");
+      let assetFindings = [];
+      let assetsScanned = 0;
+      let exposedFiles = [];
+
+      if (scanOptions.scanAssets) {
+        const assetUrls = extractAssetUrls(text, url);
+        assetsScanned = assetUrls.length;
+        for (const assetUrl of assetUrls) {
+          try {
+            const assetResponse = await fetch(assetUrl, { mode: "cors" });
+            if (!assetResponse.ok) continue;
+            const assetText = await assetResponse.text();
+            assetFindings = assetFindings.concat(
+              extractMatches(assetText, `Asset: ${assetUrl}`)
+            );
+          } catch {
+            // ignore asset fetch errors
+          }
+        }
+      }
+
+      if (scanOptions.checkExposed) {
+        exposedFiles = await checkCommonPaths(url);
+      }
+
+      const mergedFindings = [...findings, ...assetFindings];
       updateStatus(url, "Done", "success");
       setResults((prev) => [
         ...prev,
         {
           url,
-          findings,
+          findings: mergedFindings,
+          assetsScanned,
+          exposedFiles,
           error: null,
         },
       ]);
@@ -205,6 +376,8 @@ export default function App() {
         {
           url,
           findings: [],
+          assetsScanned: 0,
+          exposedFiles: [],
           error: error.message,
         },
       ]);
@@ -235,6 +408,43 @@ export default function App() {
     setScanSummary("Idle");
   };
 
+  const exportJson = () => {
+    const blob = new Blob([JSON.stringify(results, null, 2)], {
+      type: "application/json",
+    });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "scan-results.json";
+    link.click();
+  };
+
+  const exportCsv = () => {
+    const rows = [
+      ["URL", "Rule", "Severity", "Source", "Match"],
+    ];
+
+    results.forEach((result) => {
+      result.findings.forEach((finding) => {
+        finding.matches.forEach((match) => {
+          rows.push([
+            result.url,
+            finding.rule,
+            finding.severity,
+            finding.source,
+            match,
+          ]);
+        });
+      });
+    });
+
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "scan-results.csv";
+    link.click();
+  };
+
   return (
     <div className="page">
       <Header />
@@ -243,14 +453,20 @@ export default function App() {
           <ScannerPanel
             urlsInput={urlsInput}
             setUrlsInput={setUrlsInput}
+            customRulesInput={customRulesInput}
+            setCustomRulesInput={setCustomRulesInput}
+            scanOptions={scanOptions}
+            setScanOptions={setScanOptions}
             scanSummary={scanSummary}
             statusRows={statusRows}
             onScan={startScan}
             onClear={clearAll}
+            onExportJson={exportJson}
+            onExportCsv={exportCsv}
           />
           <ResultsPanel results={results} />
         </section>
-        <RulesPanel patterns={patterns} />
+        <RulesPanel patterns={combinedPatterns} />
       </div>
       <footer>Built for quick reconnaissance. Always handle discoveries responsibly.</footer>
     </div>

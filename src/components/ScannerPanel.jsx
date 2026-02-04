@@ -1,10 +1,16 @@
 export default function ScannerPanel({
   urlsInput,
   setUrlsInput,
+  customRulesInput,
+  setCustomRulesInput,
+  scanOptions,
+  setScanOptions,
   scanSummary,
   statusRows,
   onScan,
   onClear,
+  onExportJson,
+  onExportCsv,
 }) {
   return (
     <div className="scanner">
@@ -20,10 +26,54 @@ export default function ScannerPanel({
         placeholder="https://example.com\nhttps://api.example.com/docs"
       />
 
+      <div className="options">
+        <label className="option">
+          <input
+            type="checkbox"
+            checked={scanOptions.scanAssets}
+            onChange={(event) =>
+              setScanOptions((prev) => ({
+                ...prev,
+                scanAssets: event.target.checked,
+              }))
+            }
+          />
+          Scan linked JS assets
+        </label>
+        <label className="option">
+          <input
+            type="checkbox"
+            checked={scanOptions.checkExposed}
+            onChange={(event) =>
+              setScanOptions((prev) => ({
+                ...prev,
+                checkExposed: event.target.checked,
+              }))
+            }
+          />
+          Check common exposed files
+        </label>
+      </div>
+
+      <div className="custom-rules">
+        <label className="muted small">Custom regex rules (one per line, optional name with Name::/pattern/flags)</label>
+        <textarea
+          value={customRulesInput}
+          onChange={(event) => setCustomRulesInput(event.target.value)}
+          placeholder="MyRule::/sk_live_[A-Za-z0-9]{24,}/g"
+        />
+      </div>
+
       <div className="actions">
         <button onClick={onScan}>Start scan</button>
         <button className="secondary" onClick={onClear}>
           Clear
+        </button>
+        <button className="secondary" onClick={onExportJson}>
+          Export JSON
+        </button>
+        <button className="secondary" onClick={onExportCsv}>
+          Export CSV
         </button>
         <span className="pill" aria-live="polite">
           {scanSummary}

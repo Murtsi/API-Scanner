@@ -13,6 +13,9 @@ export default function App() {
   const [options, setOptions] = useState({
     scanAssets: true,
     checkExposed: true,
+    checkHeaders: true,
+    testSqli: false,
+    testXss: false,
     entropyThreshold: SCAN_CONFIG.ENTROPY_THRESHOLD,
     maxMatchesPerRule: SCAN_CONFIG.MAX_MATCHES_PER_RULE,
   });

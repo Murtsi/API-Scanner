@@ -50,9 +50,45 @@ export default function ScannerPanel({
           />
           Check exposed files
         </label>
+        <label className="option-toggle">
+          <input
+            type="checkbox"
+            checked={options.checkHeaders}
+            onChange={(e) => setOptions((p) => ({ ...p, checkHeaders: e.target.checked }))}
+            disabled={isScanning}
+          />
+          Security headers
+        </label>
         <button className="btn-link" onClick={() => setShowAdvanced((v) => !v)}>
           {showAdvanced ? 'Hide advanced ▲' : 'Advanced ▼'}
         </button>
+      </div>
+
+      <div className="options-row options-row-active">
+        <span className="active-label">Active testing</span>
+        <label className="option-toggle option-toggle-active">
+          <input
+            type="checkbox"
+            checked={options.testSqli}
+            onChange={(e) => setOptions((p) => ({ ...p, testSqli: e.target.checked }))}
+            disabled={isScanning}
+          />
+          SQL injection
+        </label>
+        <label className="option-toggle option-toggle-active">
+          <input
+            type="checkbox"
+            checked={options.testXss}
+            onChange={(e) => setOptions((p) => ({ ...p, testXss: e.target.checked }))}
+            disabled={isScanning}
+          />
+          XSS reflection
+        </label>
+        {(options.testSqli || options.testXss) && (
+          <span className="active-warning">
+            ⚠ Sends payloads — only scan targets you own or have permission to test.
+          </span>
+        )}
       </div>
 
       {showAdvanced && (

@@ -109,15 +109,24 @@ function SeverityBadge({ severity }) {
   );
 }
 
+const TYPE_LABELS = {
+  header: { label: 'Header', cls: 'type-header' },
+  vuln:   { label: 'Active', cls: 'type-vuln' },
+};
+
 function FindingCard({ finding }) {
   const [open, setOpen] = useState(true);
   const guidance = GUIDANCE[finding.name];
+  const typeInfo = finding.type ? TYPE_LABELS[finding.type] : null;
 
   return (
     <div className={`finding-card sev-border-${finding.severity}`}>
       <button className="finding-header" onClick={() => setOpen((v) => !v)}>
         <div className="finding-title">
           <SeverityBadge severity={finding.severity} />
+          {typeInfo && (
+            <span className={`type-badge ${typeInfo.cls}`}>{typeInfo.label}</span>
+          )}
           <strong>{finding.name}</strong>
           {finding.category && (
             <span className="category-tag">{finding.category}</span>
@@ -289,7 +298,8 @@ export default function ResultsPanel({ results, isScanning, onExportJson, onExpo
           Enter URLs above and click <strong>Start scan</strong> to begin.
         </p>
         <p className="muted small">
-          Scans accessible HTML, linked JS bundles, and 32 common exposed paths for 49+ secret patterns.
+          Scans HTML, JS bundles, and 32+ exposed paths for 49+ secret patterns.
+          Optionally checks security headers and actively tests endpoints for SQL injection and XSS.
         </p>
       </div>
     );

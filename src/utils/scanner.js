@@ -40,18 +40,18 @@ export async function fetchWithTimeout(url, timeoutMs = SCAN_CONFIG.FETCH_TIMEOU
 }
 
 /**
- * Fetch a URL safely, returning { text, status, error }.
+ * Fetch a URL safely, returning { text, status, headers, error }.
  * @param {string} url
- * @returns {Promise<{text: string, status: number|null, error: string|null}>}
+ * @returns {Promise<{text: string, status: number|null, headers: Headers|null, error: string|null}>}
  */
 export async function fetchContent(url) {
   try {
     const res = await fetchWithTimeout(url);
     const text = await res.text();
-    return { text, status: res.status, error: null };
+    return { text, status: res.status, headers: res.headers, error: null };
   } catch (err) {
     const error = err.name === 'AbortError' ? 'Timeout (12 s)' : err.message;
-    return { text: '', status: null, error };
+    return { text: '', status: null, headers: null, error };
   }
 }
 
@@ -181,10 +181,11 @@ export async function checkExposedFiles(baseUrl, onProgress) {
  * @param {string[]} assetUrls
  * @param {Array} rules
  * @param {{ entropyThreshold: number, maxMatchesPerRule: number }} options
- * @param {function} [onAssetDone]
+ * @param {function} [onAssetDone]  - called with (url) after each asset is done
+ * @param {function} [onContent]    - called with (url, text) to collect raw JS for endpoint extraction
  * @returns {Promise<Array>}
  */
-export async function scanAssetsParallel(assetUrls, rules, options, onAssetDone) {
+export async function scanAssetsParallel(assetUrls, rules, options, onAssetDone, onContent) {
   const { entropyThreshold, maxMatchesPerRule } = options;
   const merged = new Map(); // id -> finding
   const concurrency = SCAN_CONFIG.ASSET_CONCURRENCY;
@@ -195,6 +196,7 @@ export async function scanAssetsParallel(assetUrls, rules, options, onAssetDone)
       batch.map(async (url) => {
         const { text } = await fetchContent(url);
         if (!text) return;
+        onContent?.(url, text);
         const findings = extractFindings(text, rules, entropyThreshold, maxMatchesPerRule);
         for (const f of findings) {
           if (!merged.has(f.id)) {

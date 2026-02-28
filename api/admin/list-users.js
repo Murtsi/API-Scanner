@@ -1,9 +1,10 @@
+import { methodNotAllowed, serverError } from '../_http.js';
 import { requireAdmin } from '../_supabase.js';
 
 export default async function handler(req, res) {
   try {
     if (req.method !== 'GET') {
-      return res.status(405).json({ error: 'Method not allowed' });
+      return methodNotAllowed(res);
     }
 
     const auth = await requireAdmin(req, res);
@@ -27,6 +28,6 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ users });
   } catch (error) {
-    return res.status(500).json({ error: error.message || 'List users failed' });
+    return serverError(res, error, 'List users failed');
   }
 }

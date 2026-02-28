@@ -355,6 +355,14 @@ const GUIDANCE = {
     'Literal password in code — likely shared or reused across systems.',
   'High-Entropy String':
     'Appears randomly generated — may be an undeclared API key or secret.',
+  'Directory Listing Enabled':
+    'Directory indexing is exposed and can reveal internal files and paths to attackers.',
+  'Stack Trace Disclosure':
+    'Verbose runtime errors reveal internals that help attackers target known weaknesses.',
+  'Potential Source Map Exposure':
+    'Public source maps can leak original source code and implementation details.',
+  'Debug Header Disclosure':
+    'Debug response headers can expose internal tooling and diagnostics data.',
 };
 
 function copyToClipboard(text) {

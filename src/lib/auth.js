@@ -14,12 +14,6 @@ export async function getAccessToken() {
   return data.session?.access_token ?? null;
 }
 
-export async function getCurrentUser() {
-  const { data, error } = await supabase.auth.getUser();
-  if (error) return null;
-  return data.user ?? null;
-}
-
 export function isAdminUser(user) {
   if (!user) return false;
   const role = user.app_metadata?.role;

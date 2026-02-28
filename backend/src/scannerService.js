@@ -2,6 +2,7 @@ import { BASE_RULES } from '../../src/utils/patterns.js';
 import { EXPOSED_PATHS, SCAN_CONFIG, SEVERITY_ORDER } from '../../src/config/constants.js';
 import { analyzeSecurityHeaders } from '../../src/utils/headerAnalyzer.js';
 import { findHighEntropyStrings } from '../../src/utils/entropy.js';
+import { analyzeWebRisks } from '../../src/utils/webRiskAnalyzer.js';
 
 const DEFAULT_TIMEOUT = Number.parseInt(process.env.API_SCANNER_TIMEOUT_MS || `${SCAN_CONFIG.FETCH_TIMEOUT_MS}`, 10);
 
@@ -235,6 +236,13 @@ export async function scanTarget(url, options = {}) {
       if (!assetResponse.text) continue;
       const assetFindings = extractFindings(assetResponse.text, BASE_RULES, entropyThreshold, maxMatchesPerRule);
       mergeFindingsWithSource(findingsMap, assetFindings, assetUrl);
+    }
+  }
+
+  if (options.checkWebRisks !== false) {
+    const webRiskFindings = analyzeWebRisks({ content: main.text, headers: main.headers, url });
+    for (const finding of webRiskFindings) {
+      findingsMap.set(finding.id, finding);
     }
   }
 

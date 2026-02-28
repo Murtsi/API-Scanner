@@ -26,6 +26,7 @@ export default function App() {
     scanAssets: true,
     checkExposed: true,
     checkHeaders: true,
+    checkWebRisks: true,
     testSqliError: false,
     testSqliBlind: false,
     testNosql: false,

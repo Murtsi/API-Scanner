@@ -10,6 +10,7 @@ import {
 } from '../utils/scanner.js';
 import { SCAN_CONFIG, SEVERITY_ORDER } from '../config/constants.js';
 import { analyzeSecurityHeaders } from '../utils/headerAnalyzer.js';
+import { analyzeWebRisks } from '../utils/webRiskAnalyzer.js';
 import { extractApiEndpoints, extractFormActions } from '../utils/endpointExtractor.js';
 import { testSqliEndpoints, testSqliTimeBased, testNoSqlEndpoints, testXssEndpoints } from '../utils/vulnScanner.js';
 
@@ -142,6 +143,18 @@ export function useScanner() {
         }
         if (headerFindings.length > 0) {
           addLog(`  ⚠ ${headerFindings.length} header issue(s) found`, 'warn');
+        }
+      }
+
+      if (options.checkWebRisks) {
+        const passiveContent = [html, ...jsContentChunks].join('\n');
+        addLog('  → Analysing web risk signals', 'info');
+        const webRiskFindings = analyzeWebRisks({ content: passiveContent, headers, url });
+        for (const finding of webRiskFindings) {
+          findingsMap.set(finding.id, finding);
+        }
+        if (webRiskFindings.length > 0) {
+          addLog(`  ⚠ ${webRiskFindings.length} web risk signal(s) found`, 'warn');
         }
       }
 

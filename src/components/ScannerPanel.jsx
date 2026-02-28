@@ -4,6 +4,7 @@ import { SCAN_CONFIG } from '../config/constants.js';
 const ACTIVE_TESTS = [
   { key: 'testSqliError', label: 'SQL Injection',        sub: 'Error-Based' },
   { key: 'testSqliBlind', label: 'SQL Injection',        sub: 'Time-Based Blind' },
+          { key: 'checkWebRisks', label: 'Web risks' },
   { key: 'testNosql',     label: 'NoSQL Injection',      sub: 'MongoDB Operators' },
   { key: 'testXss',       label: 'XSS Reflection',       sub: 'Reflected Input' },
 ];

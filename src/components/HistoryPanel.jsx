@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react';
 import { deleteScanRun, listScanRuns } from '../lib/scanHistory.js';
-
-function formatDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString();
-}
+import { formatDateTime } from '../lib/formatters.js';
 
 function summarize(run) {
   const targets = Array.isArray(run.targets) ? run.targets.length : 0;
@@ -70,7 +65,7 @@ export default function HistoryPanel({ refreshToken, onLoadRun }) {
           return (
             <div key={run.id} className="history-item">
               <div>
-                <div className="history-title">{formatDate(run.created_at)}</div>
+                <div className="history-title">{formatDateTime(run.created_at)}</div>
                 <div className="muted small">
                   {info.targets} target(s) · {info.findingTypes} finding type(s)
                 </div>

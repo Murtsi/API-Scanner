@@ -15,6 +15,7 @@ A client-side web security scanner for finding exposed secrets, testing endpoint
 - Crawls linked JavaScript bundles for exposed credentials
 - Checks 30+ common paths for exposed files (`.env`, `.git/config`, `swagger.json`, backups, etc.)
 - Analyses HTTP response headers for missing security controls (HSTS, CSP, X-Frame-Options, CORS)
+- Detects additional web risk signals: directory listing exposure, stack trace leakage, source map references, and debug header disclosure
 - High-entropy string detection for secrets that don't match a named pattern
 
 **Active testing** (opt-in, requires permission)
@@ -113,6 +114,7 @@ All admin APIs require a valid bearer access token from a signed-in admin accoun
 
 Run [supabase/schema.sql](supabase/schema.sql) in Supabase SQL Editor.
 This creates `public.scan_runs` with RLS policies so each user only sees/deletes their own saved scans.
+The schema also adds an index and auto-pruning trigger to keep the latest 100 runs per user.
 
 ---
 

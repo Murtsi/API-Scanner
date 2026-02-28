@@ -1,18 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createManagedUser, listManagedUsers, setManagedUserDisabled } from '../lib/adminApi.js';
-
-function formatDate(value) {
-  if (!value) return '—';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString();
-}
-
-function isDisabled(user) {
-  if (!user?.banned_until) return false;
-  const d = new Date(user.banned_until);
-  return d.getTime() > Date.now();
-}
+import { formatDateTime, isUserDisabled } from '../lib/formatters.js';
 
 export default function AdminPanel() {
   const [users, setUsers] = useState([]);
@@ -61,7 +49,7 @@ export default function AdminPanel() {
   const handleToggle = async (user) => {
     setError('');
     try {
-      await setManagedUserDisabled({ userId: user.id, disabled: !isDisabled(user) });
+      await setManagedUserDisabled({ userId: user.id, disabled: !isUserDisabled(user) });
       await loadUsers();
     } catch (err) {
       setError(err.message || 'Failed to update user');
@@ -110,7 +98,7 @@ export default function AdminPanel() {
 
       <div className="admin-users">
         {users.map((user) => {
-          const disabled = isDisabled(user);
+          const disabled = isUserDisabled(user);
           const roleLabel = user.app_metadata?.role || 'user';
 
           return (
@@ -118,7 +106,7 @@ export default function AdminPanel() {
               <div>
                 <div className="admin-user-email">{user.email || '(no email)'}</div>
                 <div className="muted small">
-                  role: {roleLabel} · created: {formatDate(user.created_at)} · last login: {formatDate(user.last_sign_in_at)}
+                  role: {roleLabel} · created: {formatDateTime(user.created_at)} · last login: {formatDateTime(user.last_sign_in_at)}
                 </div>
               </div>
               <button

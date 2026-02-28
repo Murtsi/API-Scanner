@@ -1,97 +1,139 @@
+import { useState } from 'react';
+import { SCAN_CONFIG } from '../config/constants.js';
+
 export default function ScannerPanel({
   urlsInput,
   setUrlsInput,
   customRulesInput,
   setCustomRulesInput,
-  scanOptions,
-  setScanOptions,
-  scanSummary,
-  statusRows,
+  options,
+  setOptions,
+  isScanning,
+  log,
   onScan,
+  onStop,
   onClear,
-  onExportJson,
-  onExportCsv,
 }) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
   return (
-    <div className="scanner">
-      <h2>Target list</h2>
-      <p className="muted">
-        One URL per line. The scan checks HTML, optional JS assets, and common
-        exposed files for secrets and keys.
-      </p>
+    <section className="card scanner-card">
+      <h2>Target URLs</h2>
+      <p className="muted small">One URL per line — HTTP/HTTPS only.</p>
 
       <textarea
+        className="url-input"
         value={urlsInput}
-        onChange={(event) => setUrlsInput(event.target.value)}
-        placeholder="https://example.com\nhttps://api.example.com/docs"
+        onChange={(e) => setUrlsInput(e.target.value)}
+        placeholder={'https://example.com\nhttps://api.example.com/docs'}
+        spellCheck={false}
+        disabled={isScanning}
+        aria-label="Target URLs"
       />
 
-      <div className="options">
-        <label className="option">
+      <div className="options-row">
+        <label className="option-toggle">
           <input
             type="checkbox"
-            checked={scanOptions.scanAssets}
-            onChange={(event) =>
-              setScanOptions((prev) => ({
-                ...prev,
-                scanAssets: event.target.checked,
-              }))
-            }
+            checked={options.scanAssets}
+            onChange={(e) => setOptions((p) => ({ ...p, scanAssets: e.target.checked }))}
+            disabled={isScanning}
           />
           Scan linked JS assets
         </label>
-        <label className="option">
+        <label className="option-toggle">
           <input
             type="checkbox"
-            checked={scanOptions.checkExposed}
-            onChange={(event) =>
-              setScanOptions((prev) => ({
-                ...prev,
-                checkExposed: event.target.checked,
-              }))
-            }
+            checked={options.checkExposed}
+            onChange={(e) => setOptions((p) => ({ ...p, checkExposed: e.target.checked }))}
+            disabled={isScanning}
           />
-          Check common exposed files
+          Check exposed files
         </label>
+        <button className="btn-link" onClick={() => setShowAdvanced((v) => !v)}>
+          {showAdvanced ? 'Hide advanced ▲' : 'Advanced ▼'}
+        </button>
       </div>
 
-      <div className="custom-rules">
-        <label className="muted small">
-          Custom regex rules (optional, one per line). Format:
-          <br />
-          Name::/pattern/flags
-        </label>
-        <textarea
-          value={customRulesInput}
-          onChange={(event) => setCustomRulesInput(event.target.value)}
-          placeholder="MyRule::/sk_live_[A-Za-z0-9]{24,}/g"
-        />
-      </div>
+      {showAdvanced && (
+        <div className="advanced-panel">
+          <div className="advanced-row">
+            <label>
+              Entropy threshold
+              <input
+                type="number"
+                min="2.0"
+                max="5.0"
+                step="0.1"
+                value={options.entropyThreshold}
+                onChange={(e) =>
+                  setOptions((p) => ({
+                    ...p,
+                    entropyThreshold: parseFloat(e.target.value) || SCAN_CONFIG.ENTROPY_THRESHOLD,
+                  }))
+                }
+                disabled={isScanning}
+              />
+            </label>
+            <label>
+              Max matches / rule
+              <input
+                type="number"
+                min="1"
+                max="20"
+                value={options.maxMatchesPerRule}
+                onChange={(e) =>
+                  setOptions((p) => ({
+                    ...p,
+                    maxMatchesPerRule: parseInt(e.target.value, 10) || SCAN_CONFIG.MAX_MATCHES_PER_RULE,
+                  }))
+                }
+                disabled={isScanning}
+              />
+            </label>
+          </div>
+
+          <div className="custom-rules">
+            <label className="muted small">
+              Custom regex rules (optional)
+              <span className="muted"> — format: <code>Name::/pattern/flags</code></span>
+            </label>
+            <textarea
+              value={customRulesInput}
+              onChange={(e) => setCustomRulesInput(e.target.value)}
+              placeholder="MyRule::/sk_live_[A-Za-z0-9]{24,}/g"
+              spellCheck={false}
+              disabled={isScanning}
+              style={{ minHeight: '80px' }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="actions">
-        <button onClick={onScan}>Start scan</button>
-        <button className="secondary" onClick={onClear}>
+        {isScanning ? (
+          <button className="btn-danger" onClick={onStop}>
+            Stop
+          </button>
+        ) : (
+          <button className="btn-primary" onClick={onScan}>
+            Start scan
+          </button>
+        )}
+        <button className="btn-secondary" onClick={onClear} disabled={isScanning}>
           Clear
         </button>
-        <button className="secondary" onClick={onExportJson}>
-          Export JSON
-        </button>
-        <button className="secondary" onClick={onExportCsv}>
-          Export CSV
-        </button>
-        <span className="pill" aria-live="polite">
-          {scanSummary}
-        </span>
       </div>
 
-      <div className="status" aria-live="polite">
-        {statusRows.map((row) => (
-          <div className="status-row" key={row.url}>
-            <strong>{row.url}</strong>
-            <span className={`badge ${row.badge}`}>{row.status}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+      {log.length > 0 && (
+        <div className="log" aria-live="polite" aria-label="Scan log">
+          {log.map((entry) => (
+            <div key={entry.id} className={`log-entry log-${entry.type}`}>
+              {entry.msg}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

@@ -11,13 +11,43 @@ export default function App() {
   const [urlsInput, setUrlsInput] = useState('');
   const [customRulesInput, setCustomRulesInput] = useState('');
   const [options, setOptions] = useState({
+    // Passive — core
     scanAssets: true,
     checkExposed: true,
     checkHeaders: true,
+    // Passive — enhanced
+    checkDomSinks: false,
+    checkOutdatedLibs: false,
+    checkSourceMaps: false,
+    checkSensitiveStorage: false,
+    checkSri: false,
+    checkRobots: false,
+    // Reconnaissance
+    reconFingerprint: false,
+    reconCloud: false,
+    reconGraphql: false,
+    // Active — injection
     testSqliError: false,
     testSqliBlind: false,
     testNosql: false,
+    testCmdi: false,
+    testPathTraversal: false,
+    testSsti: false,
+    testXxe: false,
+    // Active — client-side
     testXss: false,
+    testOpenRedirect: false,
+    testCorsAbuse: false,
+    testCrlf: false,
+    // Active — infrastructure
+    testSsrf: false,
+    testHostHeader: false,
+    testVerbTampering: false,
+    // Active — business logic
+    testIdor: false,
+    testHpp: false,
+    testGraphqlIntrospect: false,
+    // Advanced
     entropyThreshold: SCAN_CONFIG.ENTROPY_THRESHOLD,
     maxMatchesPerRule: SCAN_CONFIG.MAX_MATCHES_PER_RULE,
   });
@@ -63,7 +93,7 @@ export default function App() {
       </div>
 
       <footer>
-        Scan only targets you own or have explicit permission to test. Handle all discoveries responsibly.
+        Professional security scanner for authorised use only. Scan only targets you own or have explicit written permission to test. Handle all discoveries responsibly and in accordance with applicable law.
       </footer>
     </div>
   );

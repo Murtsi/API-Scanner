@@ -9,6 +9,9 @@ import {
   scanAssetsParallel,
 } from '../utils/scanner.js';
 import { SCAN_CONFIG, SEVERITY_ORDER } from '../config/constants.js';
+import { analyzeSecurityHeaders } from '../utils/headerAnalyzer.js';
+import { extractApiEndpoints, extractFormActions } from '../utils/endpointExtractor.js';
+import { testSqliEndpoints, testXssEndpoints } from '../utils/vulnScanner.js';
 
 /**
  * Parse custom rules from a textarea string.
@@ -78,7 +81,7 @@ export function useScanner() {
       const t0 = Date.now();
 
       addLog(`Fetching ${url}`, 'info');
-      const { text: html, status, error } = await fetchContent(url);
+      const { text: html, status, headers, error } = await fetchContent(url);
 
       if (error || !html) {
         result.error = error || `HTTP ${status}`;
@@ -96,6 +99,9 @@ export function useScanner() {
         findingsMap.set(f.id, { ...f, sources: [url] });
       }
 
+      // Collect JS content chunks for endpoint extraction
+      const jsContentChunks = [];
+
       // Scan linked JS assets in parallel
       if (options.scanAssets) {
         const assetUrls = extractAssets(html, url);
@@ -109,6 +115,10 @@ export function useScanner() {
             (assetUrl) => {
               const name = assetUrl.split('/').pop()?.slice(0, 55) || assetUrl;
               addLog(`    ✓ ${name}`, 'info');
+            },
+            (_assetUrl, text) => {
+              // Collect first 40 KB of each JS file for endpoint extraction
+              jsContentChunks.push(text.slice(0, 40000));
             }
           );
           for (const af of assetFindings) {
@@ -123,6 +133,18 @@ export function useScanner() {
         }
       }
 
+      // Security headers analysis (passive — uses headers already received)
+      if (options.checkHeaders) {
+        addLog(`  → Analysing security headers`, 'info');
+        const headerFindings = analyzeSecurityHeaders(headers, url);
+        for (const hf of headerFindings) {
+          findingsMap.set(hf.id, hf);
+        }
+        if (headerFindings.length > 0) {
+          addLog(`  ⚠ ${headerFindings.length} header issue(s) found`, 'warn');
+        }
+      }
+
       // Check exposed files
       if (options.checkExposed) {
         addLog(`  → Checking exposed paths`, 'info');
@@ -130,6 +152,41 @@ export function useScanner() {
         result.exposedFiles = exposed;
         if (exposed.length > 0) {
           addLog(`  ⚠ ${exposed.length} exposed file(s) found`, 'warn');
+        }
+      }
+
+      // Active testing — extract endpoints from HTML + collected JS
+      const needsActive = options.testSqli || options.testXss;
+      if (needsActive) {
+        const combinedContent = [html, ...jsContentChunks].join('\n');
+        const apiEndpoints = extractApiEndpoints(combinedContent, url);
+        const formEndpoints = extractFormActions(html, url);
+        const allEndpoints = [...new Set([...apiEndpoints, ...formEndpoints])];
+
+        if (allEndpoints.length > 0) {
+          addLog(`  → Found ${allEndpoints.length} endpoint(s) for active testing`, 'info');
+        }
+
+        if (options.testSqli && allEndpoints.length > 0) {
+          addLog(`  → SQL injection testing (error-based)`, 'info');
+          const sqliFindings = await testSqliEndpoints(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
+          for (const sf of sqliFindings) {
+            findingsMap.set(sf.id, sf);
+          }
+          if (sqliFindings.length > 0) {
+            addLog(`  ⚠ ${sqliFindings.length} SQLi finding(s)`, 'warn');
+          }
+        }
+
+        if (options.testXss && allEndpoints.length > 0) {
+          addLog(`  → XSS reflection testing`, 'info');
+          const xssFindings = await testXssEndpoints(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
+          for (const xf of xssFindings) {
+            findingsMap.set(xf.id, xf);
+          }
+          if (xssFindings.length > 0) {
+            addLog(`  ⚠ ${xssFindings.length} XSS finding(s)`, 'warn');
+          }
         }
       }
 

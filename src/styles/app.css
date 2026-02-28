@@ -717,6 +717,62 @@ footer {
   max-width: 600px;
 }
 
+/* ─── Active testing row ─────────────────────────────────────── */
+
+.options-row-active {
+  margin-top: 4px;
+  padding: 8px 10px;
+  background: rgba(255, 160, 50, 0.06);
+  border: 1px solid rgba(255, 160, 50, 0.2);
+  border-radius: 6px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.active-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.option-toggle-active {
+  color: #f0a030;
+}
+
+.active-warning {
+  font-size: 0.78rem;
+  color: #f0a030;
+  align-self: center;
+  flex: 1 1 100%;
+}
+
+/* ─── Finding type badges ─────────────────────────────────────── */
+
+.type-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.type-header {
+  background: rgba(80, 160, 255, 0.15);
+  color: #5aa0f0;
+  border: 1px solid rgba(80, 160, 255, 0.3);
+}
+
+.type-vuln {
+  background: rgba(255, 80, 80, 0.15);
+  color: #f05050;
+  border: 1px solid rgba(255, 80, 80, 0.3);
+}
+
 /* ─── Scrollbars ─────────────────────────────────────────────── */
 
 ::-webkit-scrollbar               { width: 5px; height: 5px; }

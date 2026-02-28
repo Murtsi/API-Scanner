@@ -1,94 +1,94 @@
-# API-Scanner
+# API Scanner
 
-> Secret & API Key Detector for public websites
+A client-side web security scanner for finding exposed secrets, testing endpoints for injection vulnerabilities, and auditing HTTP security headers — all without sending data to a third-party server.
 
-![Status](https://img.shields.io/badge/status-active-red)
-![Tech](https://img.shields.io/badge/react-vite-black)
-![License](https://img.shields.io/badge/license-MIT-red)
-
-A fast, client‑side scanner that searches public pages for exposed keys, tokens, and hardcoded secrets.
+![React](https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=white&labelColor=0d1117)
+![Vite](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white&labelColor=0d1117)
+![License](https://img.shields.io/badge/License-MIT-e8404a?labelColor=0d1117)
 
 ---
 
-## ✨ Features
+## What it does
 
-- **Multi‑rule detection** for common API keys, tokens, and credential patterns
-- **High‑entropy detection** for suspicious random strings
-- **Asset crawling** for linked JS bundles (optional)
-- **Exposed file checks** (e.g., .env, swagger.json, backups)
-- **Custom regex rules**
-- **Export** results to JSON or CSV
-- **Human‑friendly risk notes** explaining why exposure matters
+**Passive scanning**
+- Detects 49+ secret patterns — AWS keys, Stripe tokens, GitHub PATs, database DSNs, private keys, JWTs, and more
+- Crawls linked JavaScript bundles for exposed credentials
+- Checks 30+ common paths for exposed files (`.env`, `.git/config`, `swagger.json`, backups, etc.)
+- Analyses HTTP response headers for missing security controls (HSTS, CSP, X-Frame-Options, CORS)
+- High-entropy string detection for secrets that don't match a named pattern
+
+**Active testing** (opt-in, requires permission)
+- SQL injection — error-based (20 payloads, 45 DB/ORM error signatures)
+- SQL injection — time-based blind (SLEEP/WAITFOR/pg_sleep across 4 databases)
+- NoSQL injection — MongoDB operator injection via URL parameters
+- XSS reflection — reflected input detection across discovered endpoints
+
+Each finding includes a plain-English explanation, real attack scenario, and step-by-step fix — useful if you're sharing results with a non-technical team.
 
 ---
 
-## 🧭 Quick Start
+## Getting started
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173/
+Open `http://localhost:5173`
 
----
-
-## 🧪 How to Use
-
-1. Paste one URL per line.
-2. Toggle optional checks (JS assets, exposed files).
-3. Add custom regex rules if needed.
-4. Start scan and review findings.
-5. Export to JSON/CSV if required.
-
-### Custom Rule Format
-
-```
-MyRule::/sk_live_[A-Za-z0-9]{24,}/g
-```
-
----
-
-## 📌 What It Scans
-
-- **HTML content** of each target URL
-- **Linked JS assets** (optional)
-- **Common exposed files** on the same origin (optional)
-
----
-
-## 🛡️ Safety & Ethics
-
-Only scan systems you own or have explicit permission to test. This tool is for defensive security and auditing.
-
----
-
-## 🚀 Build
+**Build for production**
 
 ```bash
-npm run build
+npm run build   # output → dist/
 ```
-
-Output: `dist/`
-
-> If deploying on Vercel and you see a permission error, this project uses a Node‑based build command in package.json to avoid that issue.
 
 ---
 
-## 📁 Project Structure
+## Usage
+
+1. Paste one or more URLs (one per line).
+2. Toggle passive checks — JS assets, exposed files, security headers.
+3. Optionally enable active tests. These send real payloads; only use on systems you own or have written permission to test.
+4. Click **Start scan**.
+5. Expand any finding → click **Learn more** for a beginner-friendly breakdown.
+6. Export results as JSON or CSV.
+
+**Custom rules**
+
+Add your own regex patterns in Advanced settings:
+
+```
+RuleName::/pattern/flags
+```
+
+---
+
+## Project structure
 
 ```
 src/
-  components/
-  styles/
-  App.jsx
-  main.jsx
+  components/       ScannerPanel, ResultsPanel, RulesPanel, Header
+  hooks/            useScanner.js — scan orchestration
+  utils/
+    scanner.js          fetch, pattern matching, asset crawling
+    patterns.js         49 built-in detection rules
+    entropy.js          Shannon entropy detection
+    headerAnalyzer.js   HTTP security header checks
+    endpointExtractor.js  API endpoint discovery from HTML/JS
+    vulnScanner.js      SQLi, time-based blind, NoSQL, XSS testing
+    export.js           JSON/CSV export
+  config/           constants, exposed path list
+  styles/           app.css
 ```
 
 ---
 
-## 🧩 Roadmap Ideas
+## Tech stack
 
-- Server‑side proxy for deeper scans (bypassing CORS where permitted)
-- Recursive crawling and sitemap support
-- Rule packs for specific platforms
+React 18 · Vite 5 · plain CSS (no UI library) · browser Fetch API — no backend, no tracking, everything runs locally.
+
+---
+
+## Ethics
+
+Only scan targets you own or have explicit written permission to test. Active tests send real payloads to servers.

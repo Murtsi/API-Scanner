@@ -38,7 +38,14 @@ export async function requireAdmin(req, res) {
     return null;
   }
 
-  const adminClient = getAdminClient();
+  let adminClient;
+  try {
+    adminClient = getAdminClient();
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Admin API is not configured' });
+    return null;
+  }
+
   const { data, error } = await adminClient.auth.getUser(token);
 
   if (error || !data?.user) {

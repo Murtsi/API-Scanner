@@ -152,6 +152,18 @@ h1 {
 
 .header-badges { display: flex; gap: 8px; align-items: center; }
 
+.header-user {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.header-email {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ─── Pill ────────────────────────────────────────────────────── */
 
 .pill {
@@ -256,6 +268,139 @@ button { cursor: pointer; font-family: inherit; font-size: 0.88rem; border: none
   transition: border-color var(--transition), color var(--transition);
 }
 .btn-copy:hover { border-color: var(--border); color: var(--text-muted); }
+
+/* ─── Auth + Admin ───────────────────────────────────────────── */
+
+.auth-wrap {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.auth-card {
+  width: min(460px, 100%);
+}
+
+.auth-subtitle {
+  margin-top: 6px;
+}
+
+.auth-form,
+.admin-form {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.auth-label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.auth-input {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 0.88rem;
+  outline: none;
+}
+
+.auth-input:focus {
+  border-color: rgba(232,64,74,0.45);
+  box-shadow: 0 0 0 3px rgba(232,64,74,0.08);
+}
+
+.auth-error {
+  border: 1px solid rgba(232,64,74,0.4);
+  background: rgba(232,64,74,0.12);
+  color: #ffb8bc;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.82rem;
+}
+
+.admin-card h2 {
+  font-size: 0.98rem;
+}
+
+.admin-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-users {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.admin-user-row {
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-user-email {
+  font-size: 0.87rem;
+  font-weight: 600;
+}
+
+/* ─── History Panel ──────────────────────────────────────────── */
+
+.history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.history-card h2 {
+  font-size: 0.98rem;
+}
+
+.history-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.history-item {
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.history-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
 
 /* ─── Scanner Panel ───────────────────────────────────────────── */
 
@@ -620,6 +765,19 @@ textarea { font-family: inherit; }
 .sev-filter-medium.active         { border-color: var(--medium);   color: var(--medium);   background: var(--medium-bg);   }
 .sev-filter-low.active            { border-color: var(--low);      color: var(--low);      background: var(--low-bg);      }
 
+.skip-filter-row {
+  align-items: center;
+}
+
+.filter-label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-right: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
 .export-row { display: flex; gap: 8px; }
 
 .results-list { display: flex; flex-direction: column; gap: 14px; }
@@ -692,6 +850,40 @@ textarea { font-family: inherit; }
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 14px;
+}
+
+.passive-summary {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-2);
+}
+
+.passive-summary strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.passive-summary-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.passive-skip-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
 }
 
 .sev-pill {
@@ -928,8 +1120,6 @@ textarea { font-family: inherit; }
 .exposed-item code { flex: 1; color: var(--high); font-size: 0.79rem; }
 
 /* ─── Rules Panel ─────────────────────────────────────────────── */
-
-.rules-panel {}
 
 .rules-header {
   display: flex;

@@ -15,6 +15,8 @@ A client-side web security scanner for finding exposed secrets, testing endpoint
 - Crawls linked JavaScript bundles for exposed credentials
 - Checks 30+ common paths for exposed files (`.env`, `.git/config`, `swagger.json`, backups, etc.)
 - Analyses HTTP response headers for missing security controls (HSTS, CSP, X-Frame-Options, CORS)
+- Detects additional web risk signals: directory listing exposure, stack trace leakage, source map references, and debug header disclosure
+- Supports per-passive-module minimum severity thresholds and optional experimental module gating
 - High-entropy string detection for secrets that don't match a named pattern
 
 **Active testing** (opt-in, requires permission)
@@ -22,6 +24,8 @@ A client-side web security scanner for finding exposed secrets, testing endpoint
 - SQL injection — time-based blind (SLEEP/WAITFOR/pg_sleep across 4 databases)
 - NoSQL injection — MongoDB operator injection via URL parameters
 - XSS reflection — reflected input detection across discovered endpoints
+- Path traversal / LFI — probes for unsafe file path handling and local file disclosure patterns
+- Command injection — probes for shell/output signatures after command-style payload injection
 
 Each finding includes a plain-English explanation, real attack scenario, and step-by-step fix — useful if you're sharing results with a non-technical team.
 
@@ -44,6 +48,79 @@ npm run build   # output → dist/
 
 ---
 
+## Optional backend (MVP)
+
+An optional backend scaffold now exists in `backend/` for queued server-side scans.
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Backend API: `http://localhost:8787`
+
+Main endpoints:
+- `GET /health`
+- `POST /api/v1/scans`
+- `GET /api/v1/scans`
+- `GET /api/v1/scans/:id`
+- `POST /api/v1/scans/:id/cancel`
+
+From repo root you can also run:
+
+```bash
+npm run backend:dev
+```
+
+---
+
+## Supabase + Vercel auth/admin setup
+
+This project now includes:
+
+- Supabase Auth login UI in the frontend
+- Vercel serverless admin APIs under `api/admin/*`
+- Admin panel for creating users and enabling/disabling access
+- Per-user scan history saved to Supabase (`scan_runs`)
+
+### 1) Frontend environment variables
+
+Create `.env` from `.env.example` and set:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_ADMIN_EMAILS` (comma-separated emails treated as admin in UI)
+
+### 2) Vercel environment variables
+
+In Vercel Project Settings → Environment Variables set:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ADMIN_EMAILS` (same admin email allowlist)
+
+### 3) Create your first admin user
+
+In Supabase Dashboard → Authentication → Users, create a user with one of the `ADMIN_EMAILS` values.
+Then sign in through the app login page. You will see the Admin Panel.
+
+### 4) Admin APIs included
+
+- `GET /api/admin/list-users`
+- `POST /api/admin/create-user`
+- `POST /api/admin/set-user-status`
+
+All admin APIs require a valid bearer access token from a signed-in admin account.
+
+### 5) Enable scan history table
+
+Run [supabase/schema.sql](supabase/schema.sql) in Supabase SQL Editor.
+This creates `public.scan_runs` with RLS policies so each user only sees/deletes their own saved scans.
+The schema also adds an index and auto-pruning trigger to keep the latest 100 runs per user.
+
+---
+
 ## Usage
 
 1. Paste one or more URLs (one per line).
@@ -52,6 +129,8 @@ npm run build   # output → dist/
 4. Click **Start scan**.
 5. Expand any finding → click **Learn more** for a beginner-friendly breakdown.
 6. Export results as JSON or CSV.
+
+Result cards also include a compact passive-module status summary (disabled / experimental off / threshold filtered / module error), and the toolbar shows the total skipped passive module count across targets.
 
 **Custom rules**
 
@@ -71,9 +150,12 @@ src/
   hooks/            useScanner.js — scan orchestration
   utils/
     scanner.js          fetch, pattern matching, asset crawling
+    passiveModules.js   passive module registry (shared FE/BE)
+    passiveModuleRunner.js  module execution helper
     patterns.js         49 built-in detection rules
     entropy.js          Shannon entropy detection
     headerAnalyzer.js   HTTP security header checks
+    webRiskAnalyzer.js  passive web risk signal checks
     endpointExtractor.js  API endpoint discovery from HTML/JS
     vulnScanner.js      SQLi, time-based blind, NoSQL, XSS testing
     export.js           JSON/CSV export

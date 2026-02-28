@@ -210,6 +210,26 @@ const DETAIL_INFO = {
       'Apply input validation to reject inputs containing HTML/script characters at the boundary of your application.',
     ],
   },
+  'Path Traversal / LFI': {
+    what: 'Path traversal happens when user-controlled input is used to build filesystem paths. Attackers can include traversal sequences like ../ to escape intended directories and read arbitrary files from the server.',
+    attack: 'An attacker can read sensitive local files such as environment configs, credentials, or OS account data. Those leaked secrets can then be used for lateral movement and full service compromise.',
+    fix: [
+      'Do not concatenate raw user input into file paths.',
+      'Canonicalize resolved paths and enforce they stay inside a strict allowlisted base directory.',
+      'Use IDs or allowlisted filenames instead of accepting direct path input in requests.',
+      'Block traversal tokens and encoded variants (../, ..\\, %2f, %5c) at validation boundaries.',
+    ],
+  },
+  'Command Injection': {
+    what: 'Command injection occurs when user input is passed into shell or system commands without strict separation and validation.',
+    attack: 'If exploitable, attackers can execute arbitrary OS commands, read sensitive files, alter server state, and potentially gain remote control of the host process context.',
+    fix: [
+      'Avoid shell execution for user-influenced functionality whenever possible.',
+      'When process execution is required, use safe APIs that pass arguments as arrays and avoid shell interpolation.',
+      'Apply strict allowlists for accepted commands and argument values.',
+      'Run services with least-privilege OS users and isolate risky operations in constrained environments.',
+    ],
+  },
 
   // ── Security headers ───────────────────────────────────────────────────────
   'Missing HSTS': {
@@ -355,6 +375,18 @@ const GUIDANCE = {
     'Literal password in code — likely shared or reused across systems.',
   'High-Entropy String':
     'Appears randomly generated — may be an undeclared API key or secret.',
+  'Directory Listing Enabled':
+    'Directory indexing is exposed and can reveal internal files and paths to attackers.',
+  'Stack Trace Disclosure':
+    'Verbose runtime errors reveal internals that help attackers target known weaknesses.',
+  'Potential Source Map Exposure':
+    'Public source maps can leak original source code and implementation details.',
+  'Debug Header Disclosure':
+    'Debug response headers can expose internal tooling and diagnostics data.',
+  'Path Traversal / LFI':
+    'File path input may be escaping intended directories and exposing local sensitive files.',
+  'Command Injection':
+    'User input appears to affect backend shell/system command execution paths.',
 };
 
 function copyToClipboard(text) {
@@ -492,6 +524,36 @@ function SeveritySummary({ findings }) {
   );
 }
 
+const PASSIVE_SKIP_LABELS = {
+  disabled: 'disabled',
+  'experimental-disabled': 'experimental off',
+  'threshold-filtered': 'filtered by threshold',
+  error: 'module error',
+};
+
+function PassiveModuleSummary({ modules }) {
+  if (!Array.isArray(modules) || modules.length === 0) return null;
+
+  const skipped = modules.filter((module) => module.skippedReason);
+  if (skipped.length === 0) return null;
+
+  return (
+    <div className="passive-summary">
+      <strong className="small">Passive modules skipped</strong>
+      <div className="passive-summary-list">
+        {skipped.map((module) => (
+          <span key={module.id} className="passive-skip-tag">
+            {module.label}: {PASSIVE_SKIP_LABELS[module.skippedReason] || module.skippedReason}
+            {module.skippedReason === 'threshold-filtered' && module.filteredOutCount > 0
+              ? ` (${module.filteredOutCount})`
+              : ''}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ResultCard({ result }) {
   if (result.error) {
     return (
@@ -539,6 +601,7 @@ function ResultCard({ result }) {
       </div>
 
       {hasFindings && <SeveritySummary findings={result.findings} />}
+      <PassiveModuleSummary modules={result.passiveModuleSummary} />
 
       <div className="findings-list">
         {result.findings.map((f) => (
@@ -572,19 +635,37 @@ function ResultCard({ result }) {
 
 export default function ResultsPanel({ results, isScanning, onExportJson, onExportCsv }) {
   const [severityFilter, setSeverityFilter] = useState(null);
+  const [skipReasonFilter, setSkipReasonFilter] = useState(null);
 
   const totalTypes = results.reduce((n, r) => n + (r.findings?.length ?? 0), 0);
   const totalCritical = results.reduce(
     (n, r) => n + (r.findings?.filter((f) => f.severity === 'critical').length ?? 0),
     0
   );
+  const totalPassiveSkipped = results.reduce(
+    (n, r) => n + (r.passiveModuleSummary?.filter((m) => m.skippedReason).length ?? 0),
+    0
+  );
 
-  const filteredResults = severityFilter
-    ? results.map((r) => ({
-        ...r,
-        findings: r.findings.filter((f) => f.severity === severityFilter),
-      }))
-    : results;
+  const skipReasonCounts = Object.fromEntries(
+    Object.keys(PASSIVE_SKIP_LABELS).map((reason) => [
+      reason,
+      results.reduce(
+        (n, r) => n + (r.passiveModuleSummary?.filter((m) => m.skippedReason === reason).length ?? 0),
+        0
+      ),
+    ])
+  );
+
+  const filteredResults = results
+    .map((r) => ({
+      ...r,
+      findings: severityFilter ? r.findings.filter((f) => f.severity === severityFilter) : r.findings,
+    }))
+    .filter((r) => {
+      if (!skipReasonFilter) return true;
+      return (r.passiveModuleSummary || []).some((module) => module.skippedReason === skipReasonFilter);
+    });
 
   if (results.length === 0 && !isScanning) {
     return (
@@ -614,6 +695,9 @@ export default function ResultsPanel({ results, isScanning, onExportJson, onExpo
             {totalCritical > 0 && (
               <span className="badge sev-critical">{totalCritical} critical</span>
             )}
+            {totalPassiveSkipped > 0 && (
+              <span className="meta-tag">{totalPassiveSkipped} passive skipped</span>
+            )}
             <span className="muted small">
               across {results.length} target{results.length !== 1 ? 's' : ''}
             </span>
@@ -637,6 +721,31 @@ export default function ResultsPanel({ results, isScanning, onExportJson, onExpo
                 </button>
               ))}
             </div>
+
+            {totalPassiveSkipped > 0 && (
+              <div className="filter-row skip-filter-row">
+                <span className="filter-label">Passive skips</span>
+                <button
+                  className={`btn-filter ${!skipReasonFilter ? 'active' : ''}`}
+                  onClick={() => setSkipReasonFilter(null)}
+                >
+                  All
+                </button>
+                {Object.entries(PASSIVE_SKIP_LABELS).map(([reason, label]) => {
+                  const count = skipReasonCounts[reason] || 0;
+                  if (count === 0) return null;
+                  return (
+                    <button
+                      key={reason}
+                      className={`btn-filter ${skipReasonFilter === reason ? 'active' : ''}`}
+                      onClick={() => setSkipReasonFilter(reason === skipReasonFilter ? null : reason)}
+                    >
+                      {label} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="export-row">
               <button

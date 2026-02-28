@@ -1,6 +1,6 @@
 import { BASE_RULES } from '../utils/patterns.js';
 
-export default function Header() {
+export default function Header({ user, isAdmin, onSignOut }) {
   return (
     <header className="header">
       <div className="brand">
@@ -30,7 +30,12 @@ export default function Header() {
       <div className="header-badges">
         <span className="pill">v2.0</span>
         <span className="pill">{BASE_RULES.length} rules</span>
-        <span className="pill">Client-side</span>
+        <span className="pill">Supabase Auth</span>
+        {isAdmin ? <span className="pill">Admin</span> : null}
+      </div>
+      <div className="header-user">
+        <span className="pill header-email">{user?.email || 'Signed in'}</span>
+        <button type="button" className="btn-secondary" onClick={onSignOut}>Sign out</button>
       </div>
     </header>
   );

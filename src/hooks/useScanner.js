@@ -9,7 +9,8 @@ import {
   scanAssetsParallel,
 } from '../utils/scanner.js';
 import { SCAN_CONFIG, SEVERITY_ORDER } from '../config/constants.js';
-import { analyzeSecurityHeaders } from '../utils/headerAnalyzer.js';
+import { PASSIVE_MODULES, normalizePassiveOptions } from '../utils/passiveModules.js';
+import { runPassiveModules } from '../utils/passiveModuleRunner.js';
 import { extractApiEndpoints, extractFormActions } from '../utils/endpointExtractor.js';
 import {
   testSqliEndpoints,
@@ -159,13 +160,43 @@ export function useScanner() {
         }
       }
 
-      // Security headers analysis
-      if (options.checkHeaders) {
-        addLog(`  → Analysing security headers`, 'info');
-        const headerFindings = analyzeSecurityHeaders(headers, url);
-        for (const hf of headerFindings) findingsMap.set(hf.id, hf);
-        if (headerFindings.length > 0) {
-          addLog(`  ⚠ ${headerFindings.length} header issue(s) found`, 'warn');
+      const combinedJsContent = jsContentChunks.join('\n');
+      const combinedContent = html + '\n' + combinedJsContent;
+      const passiveContent = [html, ...jsContentChunks].join('\n');
+
+      const passiveResults = runPassiveModules(PASSIVE_MODULES, options, {
+        content: passiveContent,
+        headers,
+        url,
+      });
+
+      result.passiveModuleSummary = passiveResults.map(
+        ({ module, skippedReason, threshold, findings, filteredOutCount, error: moduleError }) => ({
+          id: module.id,
+          label: module.label,
+          skippedReason,
+          threshold,
+          findingsCount: findings.length,
+          filteredOutCount: filteredOutCount || 0,
+          error: moduleError?.message || null,
+        })
+      );
+
+      for (const { module, findings, skippedReason, threshold } of passiveResults) {
+        if (skippedReason === 'disabled') continue;
+        if (skippedReason === 'experimental-disabled') continue;
+        if (skippedReason === 'error') {
+          addLog(`  ✗ Passive module failed: ${module.label}`, 'error');
+          continue;
+        }
+
+        addLog(`  → Analysing ${module.label.toLowerCase()} (min ${threshold})`, 'info');
+        for (const finding of findings) {
+          findingsMap.set(finding.id, finding);
+        }
+
+        if (findings.length > 0) {
+          addLog(`  ⚠ ${findings.length} ${module.label.toLowerCase()} issue(s) found`, 'warn');
         }
       }
 
@@ -179,10 +210,7 @@ export function useScanner() {
         }
       }
 
-      // ── Enhanced Passive Analysis ─────────────────────────────────────────────
-      const combinedJsContent = jsContentChunks.join('\n');
-      const combinedContent = html + '\n' + combinedJsContent;
-
+  // ── Enhanced Passive Analysis ─────────────────────────────────────────────
       if (options.checkDomSinks && combinedJsContent) {
         addLog(`  → Analysing DOM XSS sinks`, 'info');
         const sinkFindings = analyzeDomSinks(combinedJsContent, url);
@@ -254,7 +282,7 @@ export function useScanner() {
 
       const needsActive =
         options.testSqliError || options.testSqliBlind || options.testNosql || options.testXss ||
-        options.testPathTraversal || options.testCmdi || options.testSsti || options.testXxe ||
+        (options.testPathTraversal || options.testTraversal) || options.testCmdi || options.testSsti || options.testXxe ||
         options.testOpenRedirect || options.testCorsAbuse || options.testCrlf ||
         options.testSsrf || options.testHostHeader || options.testVerbTampering ||
         options.testIdor || options.testHpp || options.testGraphqlIntrospect;
@@ -302,7 +330,7 @@ export function useScanner() {
         if (r.length > 0) addLog(`  ⚠ ${r.length} command injection finding(s)`, 'warn');
       }
 
-      if (options.testPathTraversal) {
+      if (options.testPathTraversal || options.testTraversal) {
         addLog(`  → Path traversal / local file inclusion`, 'info');
         const r = await testPathTraversal(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
         for (const f of r) findingsMap.set(f.id, f);
@@ -414,6 +442,7 @@ export function useScanner() {
 
   const startScan = useCallback(
     async (urlsText, customRulesText, options) => {
+      const normalizedOptions = normalizePassiveOptions(options || {});
       const urls = urlsText
         .split('\n')
         .map((u) => u.trim())
@@ -440,7 +469,7 @@ export function useScanner() {
           addLog('Scan stopped by user', 'warn');
           break;
         }
-        const r = await scanUrl(url, options, rules);
+        const r = await scanUrl(url, normalizedOptions, rules);
         allResults.push(r);
         setResults([...allResults]);
       }
@@ -464,5 +493,12 @@ export function useScanner() {
     setLog([]);
   }, []);
 
-  return { results, log, isScanning, startScan, stopScan, clearAll };
+  const hydrateFromHistory = useCallback((snapshot) => {
+    setResults(snapshot?.results || []);
+    setLog(snapshot?.log || []);
+    setIsScanning(false);
+    abortRef.current = false;
+  }, []);
+
+  return { results, log, isScanning, startScan, stopScan, clearAll, hydrateFromHistory };
 }

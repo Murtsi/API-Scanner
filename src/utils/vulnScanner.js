@@ -162,6 +162,38 @@ const XSS_PAYLOADS = [
   `javascript:/*--><${XSS_MARKER}>`, // Protocol-based
 ];
 
+const TRAVERSAL_PAYLOADS = [
+  '../../../../etc/passwd',
+  '..\\..\\..\\..\\windows\\win.ini',
+  '..%2f..%2f..%2f..%2fetc%2fpasswd',
+  '..%5c..%5c..%5c..%5cwindows%5cwin.ini',
+];
+
+const TRAVERSAL_SIGNATURES = [
+  /root:x:0:0:/i,
+  /daemon:x:/i,
+  /\[fonts\]/i,
+  /\[extensions\]/i,
+];
+
+const CMDI_PAYLOADS = [
+  ';id',
+  '|whoami',
+  '&&id',
+  ';cat /etc/passwd',
+  '|type C:\\Windows\\win.ini',
+];
+
+const CMDI_SIGNATURES = [
+  /uid=\d+\(.+?\)\s+gid=\d+/i,
+  /root:x:0:0:/i,
+  /\b(www-data|wwwrun|apache|nginx)\b/i,
+  /\[fonts\]/i,
+  /\[extensions\]/i,
+  /sh:\s*\d+:\s*.*not found/i,
+  /cmd\.exe|command not found|is not recognized as an internal or external command/i,
+];
+
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 async function tryFetch(url, timeoutMs) {
@@ -421,6 +453,80 @@ export async function testXssEndpoints(endpoints, timeoutMs = 8000) {
           severity: 'high',
           description: `The test payload "${payload}" was reflected back unescaped in the server response. An attacker can craft a malicious URL that, when clicked by a victim, executes arbitrary JavaScript in their browser.`,
           guidance: 'Escape all user-supplied data before inserting it into HTML output (use textContent, not innerHTML). Implement a strict Content-Security-Policy as a defence-in-depth layer.',
+          matches: [testUrl],
+          sources: [endpoint],
+          type: 'vuln',
+        });
+        break;
+      }
+    }
+  }
+
+  return results;
+}
+
+export async function testPathTraversalEndpoints(endpoints, timeoutMs = 8000) {
+  const results = [];
+  const done = new Set();
+
+  for (const endpoint of endpoints.slice(0, 10)) {
+    let basePath;
+    try { basePath = new URL(endpoint).pathname; } catch { continue; }
+    if (done.has(basePath)) continue;
+
+    for (const payload of TRAVERSAL_PAYLOADS) {
+      let testUrl;
+      try { testUrl = injectParam(endpoint, 'file', payload); } catch { continue; }
+
+      const { ok, body } = await tryFetch(testUrl, timeoutMs);
+      if (!ok) continue;
+
+      if (TRAVERSAL_SIGNATURES.some((sig) => sig.test(body))) {
+        done.add(basePath);
+        results.push({
+          id: `traversal-${results.length}`,
+          name: 'Path Traversal / LFI',
+          category: 'Injection',
+          severity: 'critical',
+          description: `Payload "${payload}" appears to have returned sensitive local file content. The endpoint may allow path traversal (directory traversal) and local file inclusion.`,
+          guidance: 'Never concatenate user input into filesystem paths. Canonicalize and validate paths against an allowlist of expected files/directories before reading from disk.',
+          matches: [testUrl],
+          sources: [endpoint],
+          type: 'vuln',
+        });
+        break;
+      }
+    }
+  }
+
+  return results;
+}
+
+export async function testCommandInjectionEndpoints(endpoints, timeoutMs = 8000) {
+  const results = [];
+  const done = new Set();
+
+  for (const endpoint of endpoints.slice(0, 8)) {
+    let basePath;
+    try { basePath = new URL(endpoint).pathname; } catch { continue; }
+    if (done.has(basePath)) continue;
+
+    for (const payload of CMDI_PAYLOADS) {
+      let testUrl;
+      try { testUrl = injectParam(endpoint, 'cmd', payload); } catch { continue; }
+
+      const { ok, body } = await tryFetch(testUrl, timeoutMs);
+      if (!ok) continue;
+
+      if (CMDI_SIGNATURES.some((sig) => sig.test(body))) {
+        done.add(basePath);
+        results.push({
+          id: `cmdi-${results.length}`,
+          name: 'Command Injection',
+          category: 'Injection',
+          severity: 'critical',
+          description: `Payload "${payload}" appears to have influenced command execution or returned shell/system output in the response.`,
+          guidance: 'Avoid shell execution for user-influenced input. If process execution is required, use safe APIs with strict argument allowlists and no shell interpolation.',
           matches: [testUrl],
           sources: [endpoint],
           type: 'vuln',

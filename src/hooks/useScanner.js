@@ -9,10 +9,17 @@ import {
   scanAssetsParallel,
 } from '../utils/scanner.js';
 import { SCAN_CONFIG, SEVERITY_ORDER } from '../config/constants.js';
-import { analyzeSecurityHeaders } from '../utils/headerAnalyzer.js';
-import { analyzeWebRisks } from '../utils/webRiskAnalyzer.js';
+import { PASSIVE_MODULES, normalizePassiveOptions } from '../utils/passiveModules.js';
+import { runPassiveModules } from '../utils/passiveModuleRunner.js';
 import { extractApiEndpoints, extractFormActions } from '../utils/endpointExtractor.js';
-import { testSqliEndpoints, testSqliTimeBased, testNoSqlEndpoints, testXssEndpoints } from '../utils/vulnScanner.js';
+import {
+  testSqliEndpoints,
+  testSqliTimeBased,
+  testNoSqlEndpoints,
+  testXssEndpoints,
+  testPathTraversalEndpoints,
+  testCommandInjectionEndpoints,
+} from '../utils/vulnScanner.js';
 
 /**
  * Parse custom rules from a textarea string.
@@ -134,27 +141,40 @@ export function useScanner() {
         }
       }
 
-      // Security headers analysis (passive — uses headers already received)
-      if (options.checkHeaders) {
-        addLog(`  → Analysing security headers`, 'info');
-        const headerFindings = analyzeSecurityHeaders(headers, url);
-        for (const hf of headerFindings) {
-          findingsMap.set(hf.id, hf);
-        }
-        if (headerFindings.length > 0) {
-          addLog(`  ⚠ ${headerFindings.length} header issue(s) found`, 'warn');
-        }
-      }
+      const passiveContent = [html, ...jsContentChunks].join('\n');
+      const passiveResults = runPassiveModules(PASSIVE_MODULES, options, {
+        content: passiveContent,
+        headers,
+        url,
+      });
 
-      if (options.checkWebRisks) {
-        const passiveContent = [html, ...jsContentChunks].join('\n');
-        addLog('  → Analysing web risk signals', 'info');
-        const webRiskFindings = analyzeWebRisks({ content: passiveContent, headers, url });
-        for (const finding of webRiskFindings) {
+      result.passiveModuleSummary = passiveResults.map(
+        ({ module, skippedReason, threshold, findings, filteredOutCount, error: moduleError }) => ({
+          id: module.id,
+          label: module.label,
+          skippedReason,
+          threshold,
+          findingsCount: findings.length,
+          filteredOutCount: filteredOutCount || 0,
+          error: moduleError?.message || null,
+        })
+      );
+
+      for (const { module, findings, skippedReason, threshold } of passiveResults) {
+        if (skippedReason === 'disabled') continue;
+        if (skippedReason === 'experimental-disabled') continue;
+        if (skippedReason === 'error') {
+          addLog(`  ✗ Passive module failed: ${module.label}`, 'error');
+          continue;
+        }
+
+        addLog(`  → Analysing ${module.label.toLowerCase()} (min ${threshold})`, 'info');
+        for (const finding of findings) {
           findingsMap.set(finding.id, finding);
         }
-        if (webRiskFindings.length > 0) {
-          addLog(`  ⚠ ${webRiskFindings.length} web risk signal(s) found`, 'warn');
+
+        if (findings.length > 0) {
+          addLog(`  ⚠ ${findings.length} ${module.label.toLowerCase()} issue(s) found`, 'warn');
         }
       }
 
@@ -169,7 +189,13 @@ export function useScanner() {
       }
 
       // Active testing — extract endpoints from HTML + collected JS
-      const needsActive = options.testSqliError || options.testSqliBlind || options.testNosql || options.testXss;
+      const needsActive =
+        options.testSqliError ||
+        options.testSqliBlind ||
+        options.testNosql ||
+        options.testXss ||
+        options.testTraversal ||
+        options.testCmdi;
       if (needsActive) {
         const combinedContent = [html, ...jsContentChunks].join('\n');
         const apiEndpoints = extractApiEndpoints(combinedContent, url);
@@ -178,6 +204,8 @@ export function useScanner() {
 
         if (allEndpoints.length > 0) {
           addLog(`  → Found ${allEndpoints.length} endpoint(s) for active testing`, 'info');
+        } else {
+          addLog('  → No endpoints discovered for active testing', 'warn');
         }
 
         if (options.testSqliError && allEndpoints.length > 0) {
@@ -207,6 +235,20 @@ export function useScanner() {
           for (const xf of xssFindings) findingsMap.set(xf.id, xf);
           if (xssFindings.length > 0) addLog(`  ⚠ ${xssFindings.length} XSS finding(s)`, 'warn');
         }
+
+        if (options.testTraversal && allEndpoints.length > 0) {
+          addLog(`  → Path traversal / LFI testing`, 'info');
+          const traversalFindings = await testPathTraversalEndpoints(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
+          for (const tf of traversalFindings) findingsMap.set(tf.id, tf);
+          if (traversalFindings.length > 0) addLog(`  ⚠ ${traversalFindings.length} traversal finding(s)`, 'warn');
+        }
+
+        if (options.testCmdi && allEndpoints.length > 0) {
+          addLog(`  → Command injection testing`, 'info');
+          const cmdiFindings = await testCommandInjectionEndpoints(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
+          for (const cf of cmdiFindings) findingsMap.set(cf.id, cf);
+          if (cmdiFindings.length > 0) addLog(`  ⚠ ${cmdiFindings.length} command injection finding(s)`, 'warn');
+        }
       }
 
       // Sort findings by severity
@@ -227,6 +269,7 @@ export function useScanner() {
 
   const startScan = useCallback(
     async (urlsText, customRulesText, options) => {
+      const normalizedOptions = normalizePassiveOptions(options || {});
       const urls = urlsText
         .split('\n')
         .map((u) => u.trim())
@@ -253,7 +296,7 @@ export function useScanner() {
           addLog('Scan stopped by user', 'warn');
           break;
         }
-        const r = await scanUrl(url, options, rules);
+        const r = await scanUrl(url, normalizedOptions, rules);
         allResults.push(r);
         setResults([...allResults]);
       }

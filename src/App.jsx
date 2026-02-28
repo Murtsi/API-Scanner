@@ -9,9 +9,21 @@ import HistoryPanel from './components/HistoryPanel.jsx';
 import { useScanner } from './hooks/useScanner.js';
 import { exportJson, exportCsv } from './utils/export.js';
 import { SCAN_CONFIG } from './config/constants.js';
+import { PASSIVE_MODULES, passiveModuleDefaults, normalizePassiveOptions } from './utils/passiveModules.js';
 import { supabase } from './lib/supabaseClient.js';
 import { isAdminUser, signInWithEmail, signOut } from './lib/auth.js';
 import { createScanRun } from './lib/scanHistory.js';
+
+function mergeScanOptions(previousOptions, incomingOptions) {
+  return normalizePassiveOptions({
+    ...previousOptions,
+    ...(incomingOptions || {}),
+    passiveSeverityThresholds: {
+      ...(previousOptions.passiveSeverityThresholds || {}),
+      ...((incomingOptions && incomingOptions.passiveSeverityThresholds) || {}),
+    },
+  });
+}
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -22,18 +34,19 @@ export default function App() {
 
   const [urlsInput, setUrlsInput] = useState('');
   const [customRulesInput, setCustomRulesInput] = useState('');
-  const [options, setOptions] = useState({
+  const [options, setOptions] = useState(normalizePassiveOptions({
     scanAssets: true,
     checkExposed: true,
-    checkHeaders: true,
-    checkWebRisks: true,
+    ...passiveModuleDefaults(),
     testSqliError: false,
     testSqliBlind: false,
     testNosql: false,
     testXss: false,
+    testTraversal: false,
+    testCmdi: false,
     entropyThreshold: SCAN_CONFIG.ENTROPY_THRESHOLD,
     maxMatchesPerRule: SCAN_CONFIG.MAX_MATCHES_PER_RULE,
-  });
+  }));
 
   const { results, log, isScanning, startScan, stopScan, clearAll, hydrateFromHistory } = useScanner();
   const runCounterRef = useRef(0);
@@ -140,10 +153,7 @@ export default function App() {
     }
 
     if (snapshot.options && typeof snapshot.options === 'object') {
-      setOptions((prev) => ({
-        ...prev,
-        ...snapshot.options,
-      }));
+      setOptions((prev) => mergeScanOptions(prev, snapshot.options));
     }
   };
 
@@ -176,6 +186,7 @@ export default function App() {
             setUrlsInput={setUrlsInput}
             customRulesInput={customRulesInput}
             setCustomRulesInput={setCustomRulesInput}
+            passiveModules={PASSIVE_MODULES}
             options={options}
             setOptions={setOptions}
             isScanning={isScanning}

@@ -16,6 +16,7 @@ A client-side web security scanner for finding exposed secrets, testing endpoint
 - Checks 30+ common paths for exposed files (`.env`, `.git/config`, `swagger.json`, backups, etc.)
 - Analyses HTTP response headers for missing security controls (HSTS, CSP, X-Frame-Options, CORS)
 - Detects additional web risk signals: directory listing exposure, stack trace leakage, source map references, and debug header disclosure
+- Supports per-passive-module minimum severity thresholds and optional experimental module gating
 - High-entropy string detection for secrets that don't match a named pattern
 
 **Active testing** (opt-in, requires permission)
@@ -23,6 +24,8 @@ A client-side web security scanner for finding exposed secrets, testing endpoint
 - SQL injection — time-based blind (SLEEP/WAITFOR/pg_sleep across 4 databases)
 - NoSQL injection — MongoDB operator injection via URL parameters
 - XSS reflection — reflected input detection across discovered endpoints
+- Path traversal / LFI — probes for unsafe file path handling and local file disclosure patterns
+- Command injection — probes for shell/output signatures after command-style payload injection
 
 Each finding includes a plain-English explanation, real attack scenario, and step-by-step fix — useful if you're sharing results with a non-technical team.
 
@@ -127,6 +130,8 @@ The schema also adds an index and auto-pruning trigger to keep the latest 100 ru
 5. Expand any finding → click **Learn more** for a beginner-friendly breakdown.
 6. Export results as JSON or CSV.
 
+Result cards also include a compact passive-module status summary (disabled / experimental off / threshold filtered / module error), and the toolbar shows the total skipped passive module count across targets.
+
 **Custom rules**
 
 Add your own regex patterns in Advanced settings:
@@ -145,9 +150,12 @@ src/
   hooks/            useScanner.js — scan orchestration
   utils/
     scanner.js          fetch, pattern matching, asset crawling
+    passiveModules.js   passive module registry (shared FE/BE)
+    passiveModuleRunner.js  module execution helper
     patterns.js         49 built-in detection rules
     entropy.js          Shannon entropy detection
     headerAnalyzer.js   HTTP security header checks
+    webRiskAnalyzer.js  passive web risk signal checks
     endpointExtractor.js  API endpoint discovery from HTML/JS
     vulnScanner.js      SQLi, time-based blind, NoSQL, XSS testing
     export.js           JSON/CSV export

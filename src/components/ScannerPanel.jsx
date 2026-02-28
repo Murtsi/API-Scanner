@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { SCAN_CONFIG } from '../config/constants.js';
 
+const SEVERITY_LEVELS = ['low', 'medium', 'high', 'critical'];
+
 const ACTIVE_TESTS = [
   { key: 'testSqliError', label: 'SQL Injection',        sub: 'Error-Based' },
   { key: 'testSqliBlind', label: 'SQL Injection',        sub: 'Time-Based Blind' },
-          { key: 'checkWebRisks', label: 'Web risks' },
   { key: 'testNosql',     label: 'NoSQL Injection',      sub: 'MongoDB Operators' },
   { key: 'testXss',       label: 'XSS Reflection',       sub: 'Reflected Input' },
+  { key: 'testTraversal', label: 'Path Traversal',       sub: 'Local File Inclusion' },
+  { key: 'testCmdi',      label: 'Command Injection',    sub: 'Error / Output Based' },
 ];
 
 const ACTIVE_KEYS = ACTIVE_TESTS.map((t) => t.key);
@@ -16,6 +19,7 @@ export default function ScannerPanel({
   setUrlsInput,
   customRulesInput,
   setCustomRulesInput,
+  passiveModules,
   options,
   setOptions,
   isScanning,
@@ -58,7 +62,7 @@ export default function ScannerPanel({
         {[
           { key: 'scanAssets',   label: 'JS assets'        },
           { key: 'checkExposed', label: 'Exposed files'    },
-          { key: 'checkHeaders', label: 'Security headers' },
+          ...passiveModules.map((module) => ({ key: module.optionKey, label: module.label })),
         ].map(({ key, label }) => (
           <label key={key} className="option-toggle">
             <input
@@ -125,6 +129,57 @@ export default function ScannerPanel({
       {/* Advanced settings */}
       {showAdvanced && (
         <div className="advanced-panel">
+          <div className="advanced-row">
+            <label className="option-toggle">
+              <input
+                type="checkbox"
+                checked={!!options.enableExperimentalModules}
+                onChange={(e) =>
+                  setOptions((p) => ({
+                    ...p,
+                    enableExperimentalModules: e.target.checked,
+                  }))
+                }
+                disabled={isScanning}
+              />
+              Enable experimental passive modules
+            </label>
+          </div>
+
+          {passiveModules.length > 0 && (
+            <div className="advanced-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+              <span className="muted small">Passive module minimum severity</span>
+              {passiveModules.map((module) => {
+                const thresholds = options.passiveSeverityThresholds || {};
+                const current = thresholds[module.id] || 'low';
+                return (
+                  <label key={`${module.id}-threshold`}>
+                    {module.label}
+                    <select
+                      value={current}
+                      onChange={(e) =>
+                        setOptions((p) => ({
+                          ...p,
+                          passiveSeverityThresholds: {
+                            ...(p.passiveSeverityThresholds || {}),
+                            [module.id]: e.target.value,
+                          },
+                        }))
+                      }
+                      disabled={isScanning}
+                    >
+                      {SEVERITY_LEVELS.map((level) => (
+                        <option key={level} value={level}>
+                          {level}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+
           <div className="advanced-row">
             <label>
               Entropy threshold

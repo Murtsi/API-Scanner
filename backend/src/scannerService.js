@@ -1,8 +1,8 @@
 import { BASE_RULES } from '../../src/utils/patterns.js';
 import { EXPOSED_PATHS, SCAN_CONFIG, SEVERITY_ORDER } from '../../src/config/constants.js';
-import { analyzeSecurityHeaders } from '../../src/utils/headerAnalyzer.js';
 import { findHighEntropyStrings } from '../../src/utils/entropy.js';
-import { analyzeWebRisks } from '../../src/utils/webRiskAnalyzer.js';
+import { PASSIVE_MODULES, normalizePassiveOptions } from '../../src/utils/passiveModules.js';
+import { runPassiveModules } from '../../src/utils/passiveModuleRunner.js';
 
 const DEFAULT_TIMEOUT = Number.parseInt(process.env.API_SCANNER_TIMEOUT_MS || `${SCAN_CONFIG.FETCH_TIMEOUT_MS}`, 10);
 
@@ -186,12 +186,13 @@ function mergeFindingsWithSource(findingsMap, findings, source) {
 }
 
 export async function scanTarget(url, options = {}) {
-  const timeoutMs = Number.parseInt(options.fetchTimeoutMs || `${DEFAULT_TIMEOUT}`, 10);
-  const entropyThreshold = Number.isFinite(options.entropyThreshold)
-    ? clamp(options.entropyThreshold, 2.5, 5)
+  const normalizedOptions = normalizePassiveOptions(options);
+  const timeoutMs = Number.parseInt(normalizedOptions.fetchTimeoutMs || `${DEFAULT_TIMEOUT}`, 10);
+  const entropyThreshold = Number.isFinite(normalizedOptions.entropyThreshold)
+    ? clamp(normalizedOptions.entropyThreshold, 2.5, 5)
     : SCAN_CONFIG.ENTROPY_THRESHOLD;
-  const maxMatchesPerRule = Number.isFinite(options.maxMatchesPerRule)
-    ? clamp(options.maxMatchesPerRule, 1, 25)
+  const maxMatchesPerRule = Number.isFinite(normalizedOptions.maxMatchesPerRule)
+    ? clamp(normalizedOptions.maxMatchesPerRule, 1, 25)
     : SCAN_CONFIG.MAX_MATCHES_PER_RULE;
 
   const targetResult = {
@@ -220,14 +221,31 @@ export async function scanTarget(url, options = {}) {
   const baseFindings = extractFindings(main.text, BASE_RULES, entropyThreshold, maxMatchesPerRule);
   mergeFindingsWithSource(findingsMap, baseFindings, url);
 
-  if (options.checkHeaders !== false) {
-    const headerFindings = analyzeSecurityHeaders(main.headers, url);
-    for (const finding of headerFindings) {
+  const passiveResults = runPassiveModules(PASSIVE_MODULES, normalizedOptions, {
+    content: main.text,
+    headers: main.headers,
+    url,
+  });
+
+  targetResult.passiveModuleSummary = passiveResults.map(
+    ({ module, skippedReason, threshold, findings, filteredOutCount, error }) => ({
+      id: module.id,
+      label: module.label,
+      skippedReason,
+      threshold,
+      findingsCount: findings.length,
+      filteredOutCount: filteredOutCount || 0,
+      error: error?.message || null,
+    })
+  );
+
+  for (const { findings } of passiveResults) {
+    for (const finding of findings) {
       findingsMap.set(finding.id, finding);
     }
   }
 
-  if (options.scanAssets) {
+  if (normalizedOptions.scanAssets) {
     const assets = extractAssets(main.text, url);
     targetResult.assets = assets;
 
@@ -239,14 +257,7 @@ export async function scanTarget(url, options = {}) {
     }
   }
 
-  if (options.checkWebRisks !== false) {
-    const webRiskFindings = analyzeWebRisks({ content: main.text, headers: main.headers, url });
-    for (const finding of webRiskFindings) {
-      findingsMap.set(finding.id, finding);
-    }
-  }
-
-  if (options.checkExposed) {
+  if (normalizedOptions.checkExposed) {
     try {
       targetResult.exposedFiles = await checkExposed(url, timeoutMs);
     } catch {
@@ -255,10 +266,12 @@ export async function scanTarget(url, options = {}) {
   }
 
   const requestedActive = [
-    options.testSqliError,
-    options.testSqliBlind,
-    options.testNosql,
-    options.testXss,
+    normalizedOptions.testSqliError,
+    normalizedOptions.testSqliBlind,
+    normalizedOptions.testNosql,
+    normalizedOptions.testXss,
+    normalizedOptions.testTraversal,
+    normalizedOptions.testCmdi,
   ].some(Boolean);
 
   if (requestedActive) {

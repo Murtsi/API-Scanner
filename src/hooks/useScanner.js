@@ -264,5 +264,12 @@ export function useScanner() {
     setLog([]);
   }, []);
 
-  return { results, log, isScanning, startScan, stopScan, clearAll };
+  const hydrateFromHistory = useCallback((snapshot) => {
+    setResults(snapshot?.results || []);
+    setLog(snapshot?.log || []);
+    setIsScanning(false);
+    abortRef.current = false;
+  }, []);
+
+  return { results, log, isScanning, startScan, stopScan, clearAll, hydrateFromHistory };
 }

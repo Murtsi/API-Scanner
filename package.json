@@ -7,9 +7,12 @@
   "scripts": {
     "dev": "node ./node_modules/vite/bin/vite.js",
     "build": "node ./node_modules/vite/bin/vite.js build",
-    "preview": "node ./node_modules/vite/bin/vite.js preview"
+    "preview": "node ./node_modules/vite/bin/vite.js preview",
+    "backend:dev": "npm --prefix backend run dev",
+    "backend:start": "npm --prefix backend run start"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

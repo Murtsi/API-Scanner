@@ -44,6 +44,78 @@ npm run build   # output → dist/
 
 ---
 
+## Optional backend (MVP)
+
+An optional backend scaffold now exists in `backend/` for queued server-side scans.
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Backend API: `http://localhost:8787`
+
+Main endpoints:
+- `GET /health`
+- `POST /api/v1/scans`
+- `GET /api/v1/scans`
+- `GET /api/v1/scans/:id`
+- `POST /api/v1/scans/:id/cancel`
+
+From repo root you can also run:
+
+```bash
+npm run backend:dev
+```
+
+---
+
+## Supabase + Vercel auth/admin setup
+
+This project now includes:
+
+- Supabase Auth login UI in the frontend
+- Vercel serverless admin APIs under `api/admin/*`
+- Admin panel for creating users and enabling/disabling access
+- Per-user scan history saved to Supabase (`scan_runs`)
+
+### 1) Frontend environment variables
+
+Create `.env` from `.env.example` and set:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_ADMIN_EMAILS` (comma-separated emails treated as admin in UI)
+
+### 2) Vercel environment variables
+
+In Vercel Project Settings → Environment Variables set:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ADMIN_EMAILS` (same admin email allowlist)
+
+### 3) Create your first admin user
+
+In Supabase Dashboard → Authentication → Users, create a user with one of the `ADMIN_EMAILS` values.
+Then sign in through the app login page. You will see the Admin Panel.
+
+### 4) Admin APIs included
+
+- `GET /api/admin/list-users`
+- `POST /api/admin/create-user`
+- `POST /api/admin/set-user-status`
+
+All admin APIs require a valid bearer access token from a signed-in admin account.
+
+### 5) Enable scan history table
+
+Run [supabase/schema.sql](supabase/schema.sql) in Supabase SQL Editor.
+This creates `public.scan_runs` with RLS policies so each user only sees/deletes their own saved scans.
+
+---
+
 ## Usage
 
 1. Paste one or more URLs (one per line).

@@ -11,7 +11,7 @@ import {
 import { SCAN_CONFIG, SEVERITY_ORDER } from '../config/constants.js';
 import { analyzeSecurityHeaders } from '../utils/headerAnalyzer.js';
 import { extractApiEndpoints, extractFormActions } from '../utils/endpointExtractor.js';
-import { testSqliEndpoints, testXssEndpoints } from '../utils/vulnScanner.js';
+import { testSqliEndpoints, testSqliTimeBased, testNoSqlEndpoints, testXssEndpoints } from '../utils/vulnScanner.js';
 
 /**
  * Parse custom rules from a textarea string.
@@ -170,12 +170,24 @@ export function useScanner() {
         if (options.testSqli && allEndpoints.length > 0) {
           addLog(`  → SQL injection testing (error-based)`, 'info');
           const sqliFindings = await testSqliEndpoints(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
-          for (const sf of sqliFindings) {
-            findingsMap.set(sf.id, sf);
+          for (const sf of sqliFindings) findingsMap.set(sf.id, sf);
+
+          // Time-based blind on endpoints that didn't trigger error-based
+          const errorEndpoints = new Set(sqliFindings.flatMap((f) => f.sources));
+          const blindTargets = allEndpoints.filter((e) => !errorEndpoints.has(e));
+          if (blindTargets.length > 0) {
+            addLog(`  → SQL injection testing (time-based blind)`, 'info');
+            const timeFindings = await testSqliTimeBased(blindTargets, 12000);
+            for (const tf of timeFindings) findingsMap.set(tf.id, tf);
+            sqliFindings.push(...timeFindings);
           }
-          if (sqliFindings.length > 0) {
-            addLog(`  ⚠ ${sqliFindings.length} SQLi finding(s)`, 'warn');
-          }
+
+          addLog(`  → NoSQL injection testing`, 'info');
+          const nosqlFindings = await testNoSqlEndpoints(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
+          for (const nf of nosqlFindings) findingsMap.set(nf.id, nf);
+
+          const total = sqliFindings.length + nosqlFindings.length;
+          if (total > 0) addLog(`  ⚠ ${total} injection finding(s)`, 'warn');
         }
 
         if (options.testXss && allEndpoints.length > 0) {

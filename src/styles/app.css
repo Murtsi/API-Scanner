@@ -717,6 +717,74 @@ footer {
   max-width: 600px;
 }
 
+/* ─── Finding detail (plain-English explanation) ─────────────── */
+
+.detail-toggle-row {
+  margin-top: 10px;
+}
+
+.detail-toggle-btn {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding: 0;
+}
+
+.detail-toggle-btn:hover {
+  color: var(--accent);
+}
+
+.detail-box {
+  margin-top: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.detail-section {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.detail-section:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+}
+
+.detail-text {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.detail-attack {
+  color: #f0a030;
+}
+
+.detail-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.detail-steps li {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-main);
+}
+
 /* ─── Active testing row ─────────────────────────────────────── */
 
 .options-row-active {

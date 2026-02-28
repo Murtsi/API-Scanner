@@ -156,7 +156,7 @@ export function useScanner() {
       }
 
       // Active testing — extract endpoints from HTML + collected JS
-      const needsActive = options.testSqli || options.testXss;
+      const needsActive = options.testSqliError || options.testSqliBlind || options.testNosql || options.testXss;
       if (needsActive) {
         const combinedContent = [html, ...jsContentChunks].join('\n');
         const apiEndpoints = extractApiEndpoints(combinedContent, url);
@@ -167,38 +167,32 @@ export function useScanner() {
           addLog(`  → Found ${allEndpoints.length} endpoint(s) for active testing`, 'info');
         }
 
-        if (options.testSqli && allEndpoints.length > 0) {
-          addLog(`  → SQL injection testing (error-based)`, 'info');
+        if (options.testSqliError && allEndpoints.length > 0) {
+          addLog(`  → SQL injection — error-based`, 'info');
           const sqliFindings = await testSqliEndpoints(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
           for (const sf of sqliFindings) findingsMap.set(sf.id, sf);
+          if (sqliFindings.length > 0) addLog(`  ⚠ ${sqliFindings.length} SQLi finding(s)`, 'warn');
+        }
 
-          // Time-based blind on endpoints that didn't trigger error-based
-          const errorEndpoints = new Set(sqliFindings.flatMap((f) => f.sources));
-          const blindTargets = allEndpoints.filter((e) => !errorEndpoints.has(e));
-          if (blindTargets.length > 0) {
-            addLog(`  → SQL injection testing (time-based blind)`, 'info');
-            const timeFindings = await testSqliTimeBased(blindTargets, 12000);
-            for (const tf of timeFindings) findingsMap.set(tf.id, tf);
-            sqliFindings.push(...timeFindings);
-          }
+        if (options.testSqliBlind && allEndpoints.length > 0) {
+          addLog(`  → SQL injection — time-based blind`, 'info');
+          const timeFindings = await testSqliTimeBased(allEndpoints, 12000);
+          for (const tf of timeFindings) findingsMap.set(tf.id, tf);
+          if (timeFindings.length > 0) addLog(`  ⚠ ${timeFindings.length} blind SQLi finding(s)`, 'warn');
+        }
 
-          addLog(`  → NoSQL injection testing`, 'info');
+        if (options.testNosql && allEndpoints.length > 0) {
+          addLog(`  → NoSQL injection — MongoDB operators`, 'info');
           const nosqlFindings = await testNoSqlEndpoints(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
           for (const nf of nosqlFindings) findingsMap.set(nf.id, nf);
-
-          const total = sqliFindings.length + nosqlFindings.length;
-          if (total > 0) addLog(`  ⚠ ${total} injection finding(s)`, 'warn');
+          if (nosqlFindings.length > 0) addLog(`  ⚠ ${nosqlFindings.length} NoSQL finding(s)`, 'warn');
         }
 
         if (options.testXss && allEndpoints.length > 0) {
           addLog(`  → XSS reflection testing`, 'info');
           const xssFindings = await testXssEndpoints(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
-          for (const xf of xssFindings) {
-            findingsMap.set(xf.id, xf);
-          }
-          if (xssFindings.length > 0) {
-            addLog(`  ⚠ ${xssFindings.length} XSS finding(s)`, 'warn');
-          }
+          for (const xf of xssFindings) findingsMap.set(xf.id, xf);
+          if (xssFindings.length > 0) addLog(`  ⚠ ${xssFindings.length} XSS finding(s)`, 'warn');
         }
       }
 

@@ -1216,6 +1216,264 @@ footer {
 ::-webkit-scrollbar-thumb         { background: rgba(255,255,255,0.1); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover   { background: rgba(255,255,255,0.18); }
 
+/* ─── Section label ───────────────────────────────────────────── */
+
+.section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin: 16px 0 4px;
+}
+
+/* ─── Enhanced Passive Panel ──────────────────────────────────── */
+
+.passive-panel {
+  margin-top: 10px;
+  background: var(--surface-2);
+  border: 1px solid rgba(96,165,250,0.18);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.passive-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--low);
+  box-shadow: 0 0 6px rgba(96,165,250,0.6);
+  flex-shrink: 0;
+}
+
+.passive-body,
+.recon-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-desc {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.passive-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+}
+
+.hint-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.hint-tag {
+  font-size: 0.71rem;
+  color: rgba(96,165,250,0.7);
+  background: rgba(96,165,250,0.07);
+  border: 1px solid rgba(96,165,250,0.15);
+  border-radius: var(--radius-xs);
+  padding: 1px 7px;
+}
+
+.option-hint {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+/* ─── Recon Panel ─────────────────────────────────────────────── */
+
+.recon-panel {
+  margin-top: 10px;
+  background: var(--surface-2);
+  border: 1px solid rgba(167,139,250,0.18);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.recon-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a78bfa;
+  box-shadow: 0 0 6px rgba(167,139,250,0.6);
+  flex-shrink: 0;
+}
+
+.recon-badge {
+  background: rgba(167,139,250,0.1);
+  color: #a78bfa;
+  border-color: rgba(167,139,250,0.25);
+}
+
+.recon-hint-tag {
+  color: rgba(167,139,250,0.8);
+  background: rgba(167,139,250,0.07);
+  border-color: rgba(167,139,250,0.15);
+}
+
+/* ─── Panel toggle button (shared) ────────────────────────────── */
+
+.panel-toggle-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.panel-toggle-btn:hover { background: rgba(255,255,255,0.02); }
+
+.toggle-arrow {
+  margin-left: auto;
+  font-size: 0.65rem;
+  color: var(--text-dim);
+}
+
+/* ─── Active Group Styles ─────────────────────────────────────── */
+
+.active-group {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.active-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 4px;
+  background: rgba(255,255,255,0.02);
+}
+
+.active-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  flex: 1;
+  text-align: left;
+  transition: color var(--transition);
+}
+.active-group-toggle:hover { color: var(--text); }
+
+.group-arrow {
+  display: inline-block;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  transition: transform 0.15s ease;
+  line-height: 1;
+}
+.group-arrow.open { transform: rotate(90deg); }
+
+.group-label-text { flex: 1; }
+
+.group-count {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  background: var(--surface-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 0 6px;
+  font-weight: 600;
+}
+
+.group-select-all {
+  background: var(--surface-3);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  transition: all var(--transition);
+}
+.group-select-all:hover { border-color: var(--border-accent); color: var(--accent); }
+.group-select-all:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ─── Technique / Method box ──────────────────────────────────── */
+
+.technique-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(96,165,250,0.04);
+  border: 1px solid rgba(96,165,250,0.12);
+  border-radius: var(--radius-xs);
+  padding: 7px 11px;
+}
+
+.technique-label {
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(96,165,250,0.6);
+}
+
+.technique-text {
+  font-size: 0.78rem;
+  color: rgba(96,165,250,0.85);
+  line-height: 1.45;
+}
+
+/* ─── Type badge — passive ────────────────────────────────────── */
+
+.type-passive {
+  background: rgba(96,165,250,0.1);
+  color: var(--low);
+  border: 1px solid rgba(96,165,250,0.22);
+}
+
+/* ─── Result meta tags (new types) ───────────────────────────── */
+
+.meta-active {
+  background: var(--critical-bg);
+  color: var(--critical);
+  border-color: rgba(244,63,94,0.22);
+}
+
+.meta-passive-tag {
+  background: rgba(96,165,250,0.08);
+  color: var(--low);
+  border-color: rgba(96,165,250,0.2);
+}
+
+.meta-secret {
+  background: rgba(251,191,36,0.08);
+  color: var(--medium);
+  border-color: rgba(251,191,36,0.2);
+}
+
+/* ─── Type filter buttons ─────────────────────────────────────── */
+
+.type-filter-active.active  { border-color: var(--critical); color: var(--critical); background: var(--critical-bg); }
+.type-filter-passive.active { border-color: var(--low);      color: var(--low);      background: rgba(96,165,250,0.1); }
+.type-filter-header.active  { border-color: #60a5fa;         color: #60a5fa;         background: rgba(96,165,250,0.1); }
+.type-filter-secrets.active { border-color: var(--medium);   color: var(--medium);   background: var(--medium-bg); }
+
 /* ─── Responsive ──────────────────────────────────────────────── */
 
 @media (max-width: 980px) {
@@ -1225,4 +1483,5 @@ footer {
   .advanced-row            { grid-template-columns: 1fr; }
   .toolbar-actions         { flex-direction: column; align-items: flex-start; }
   .active-grid             { grid-template-columns: 1fr; }
+  .passive-grid            { grid-template-columns: 1fr; }
 }

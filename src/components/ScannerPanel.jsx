@@ -3,16 +3,89 @@ import { SCAN_CONFIG } from '../config/constants.js';
 
 const SEVERITY_LEVELS = ['low', 'medium', 'high', 'critical'];
 
-const ACTIVE_TESTS = [
-  { key: 'testSqliError', label: 'SQL Injection',        sub: 'Error-Based' },
-  { key: 'testSqliBlind', label: 'SQL Injection',        sub: 'Time-Based Blind' },
-  { key: 'testNosql',     label: 'NoSQL Injection',      sub: 'MongoDB Operators' },
-  { key: 'testXss',       label: 'XSS Reflection',       sub: 'Reflected Input' },
-  { key: 'testTraversal', label: 'Path Traversal',       sub: 'Local File Inclusion' },
-  { key: 'testCmdi',      label: 'Command Injection',    sub: 'Error / Output Based' },
+// ── Active test definitions, grouped by category ──────────────────────────────
+
+const ACTIVE_GROUPS = [
+  {
+    label: 'Injection',
+    tests: [
+      { key: 'testSqliError',    label: 'SQL Injection',     sub: 'Error-Based' },
+      { key: 'testSqliBlind',    label: 'SQL Injection',     sub: 'Time-Based Blind' },
+      { key: 'testNosql',        label: 'NoSQL Injection',   sub: 'MongoDB Operators' },
+      { key: 'testCmdi',         label: 'Command Injection', sub: 'OS Shell' },
+      { key: 'testPathTraversal',label: 'Path Traversal',    sub: 'LFI / File Read' },
+      { key: 'testSsti',         label: 'Template Injection',sub: 'SSTI' },
+      { key: 'testXxe',          label: 'XML Injection',     sub: 'XXE' },
+    ],
+  },
+  {
+    label: 'Client-Side',
+    tests: [
+      { key: 'testXss',          label: 'XSS Reflection',   sub: 'Reflected' },
+      { key: 'testOpenRedirect', label: 'Open Redirect',     sub: 'URL Parameter' },
+      { key: 'testCorsAbuse',    label: 'CORS Abuse',        sub: 'Origin Reflection' },
+      { key: 'testCrlf',         label: 'CRLF Injection',    sub: 'Header Splitting' },
+    ],
+  },
+  {
+    label: 'Infrastructure',
+    tests: [
+      { key: 'testSsrf',         label: 'SSRF',              sub: 'Internal Network' },
+      { key: 'testHostHeader',   label: 'Host Header',       sub: 'Injection' },
+      { key: 'testVerbTampering',label: 'Verb Tampering',    sub: 'TRACE / DELETE' },
+    ],
+  },
+  {
+    label: 'Business Logic',
+    tests: [
+      { key: 'testIdor',              label: 'IDOR',           sub: 'ID Enumeration' },
+      { key: 'testHpp',               label: 'Param Pollution',sub: 'Duplicate Params' },
+      { key: 'testGraphqlIntrospect', label: 'GraphQL',        sub: 'Introspection' },
+    ],
+  },
 ];
 
-const ACTIVE_KEYS = ACTIVE_TESTS.map((t) => t.key);
+const ALL_ACTIVE_KEYS = ACTIVE_GROUPS.flatMap((g) => g.tests.map((t) => t.key));
+
+// ── Enhanced passive analysis options ─────────────────────────────────────────
+
+const ENHANCED_PASSIVE = [
+  { key: 'checkDomSinks',        label: 'DOM XSS Sinks',        hint: 'innerHTML, eval, document.write, etc.' },
+  { key: 'checkOutdatedLibs',    label: 'Vulnerable Libraries', hint: 'jQuery, Lodash, Bootstrap, Vue…' },
+  { key: 'checkSourceMaps',      label: 'Source Map Exposure',  hint: '.map files reveal original source' },
+  { key: 'checkSensitiveStorage',label: 'Sensitive Storage',    hint: 'localStorage tokens, unsafe cookies' },
+  { key: 'checkSri',             label: 'Missing SRI',          hint: 'External scripts without integrity hash' },
+  { key: 'checkRobots',          label: 'robots.txt Analysis',  hint: 'Disallowed paths, sitemap discovery' },
+];
+
+// ── Reconnaissance options ─────────────────────────────────────────────────────
+
+const RECON_OPTIONS = [
+  { key: 'reconFingerprint', label: 'Tech Fingerprinting', hint: 'CMS, framework, CDN, analytics, payment' },
+  { key: 'reconCloud',       label: 'Cloud Storage',       hint: 'S3, GCS, Azure Blob bucket references' },
+  { key: 'reconGraphql',     label: 'GraphQL Discovery',   hint: 'Endpoint references in HTML/JS' },
+];
+
+// ── Helper component ──────────────────────────────────────────────────────────
+
+function CheckOption({ optKey, label, hint, checked, onChange, disabled }) {
+  return (
+    <label className="option-toggle" title={hint}>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(optKey, e.target.checked)}
+        disabled={disabled}
+      />
+      <span>
+        {label}
+        {hint && <span className="option-hint"> — {hint}</span>}
+      </span>
+    </label>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function ScannerPanel({
   urlsInput,
@@ -28,24 +101,40 @@ export default function ScannerPanel({
   onStop,
   onClear,
 }) {
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced]         = useState(false);
+  const [showEnhanced, setShowEnhanced]         = useState(false);
+  const [showRecon, setShowRecon]               = useState(false);
+  const [activeGroupsOpen, setActiveGroupsOpen] = useState({ Injection: true, 'Client-Side': false, Infrastructure: false, 'Business Logic': false });
 
-  const activeCount  = ACTIVE_KEYS.filter((k) => options[k]).length;
-  const allActive    = activeCount === ACTIVE_KEYS.length;
-  const someActive   = activeCount > 0;
+  const setOpt = (key, val) => setOptions((p) => ({ ...p, [key]: val }));
 
-  function toggleSelectAll() {
+  const activeCount = ALL_ACTIVE_KEYS.filter((k) => options[k]).length;
+  const allActive   = activeCount === ALL_ACTIVE_KEYS.length;
+  const someActive  = activeCount > 0;
+
+  function toggleSelectAllActive() {
     const next = !allActive;
-    setOptions((p) => Object.fromEntries([
-      ...Object.entries(p),
-      ...ACTIVE_KEYS.map((k) => [k, next]),
-    ]));
+    setOptions((p) => ({
+      ...p,
+      ...Object.fromEntries(ALL_ACTIVE_KEYS.map((k) => [k, next])),
+    }));
+  }
+
+  function toggleGroup(groupLabel, groupTests) {
+    const groupKeys = groupTests.map((t) => t.key);
+    const allOn = groupKeys.every((k) => options[k]);
+    setOptions((p) => ({
+      ...p,
+      ...Object.fromEntries(groupKeys.map((k) => [k, !allOn])),
+    }));
   }
 
   return (
     <section className="card scanner-card">
       <h2>Target URLs</h2>
-      <p className="muted small">One URL per line — HTTP/HTTPS only.</p>
+      <p className="muted small">
+        One URL per line — HTTP/HTTPS only. The scanner fetches HTML, linked JS bundles, and optional active tests from each target.
+      </p>
 
       <textarea
         className="url-input"
@@ -57,76 +146,192 @@ export default function ScannerPanel({
         aria-label="Target URLs"
       />
 
-      {/* Passive options */}
+      {/* ── Core passive options ───────────────────────────────────────────── */}
+      <div className="section-label">Passive Scanning</div>
       <div className="options-row">
         {[
-          { key: 'scanAssets',   label: 'JS assets'        },
-          { key: 'checkExposed', label: 'Exposed files'    },
-          ...passiveModules.map((module) => ({ key: module.optionKey, label: module.label })),
-        ].map(({ key, label }) => (
-          <label key={key} className="option-toggle">
+          { key: 'scanAssets',   label: 'JS assets',     hint: 'Scan all linked JavaScript bundles' },
+          { key: 'checkExposed', label: 'Exposed files', hint: 'Test 130+ common exposed paths' },
+          ...passiveModules.map((m) => ({ key: m.optionKey, label: m.label, hint: '' })),
+        ].map(({ key, label, hint }) => (
+          <label key={key} className="option-toggle" title={hint || undefined}>
             <input
               type="checkbox"
               checked={options[key]}
-              onChange={(e) => setOptions((p) => ({ ...p, [key]: e.target.checked }))}
+              onChange={(e) => setOpt(key, e.target.checked)}
               disabled={isScanning}
             />
             {label}
+            {hint && <span className="option-hint"> — {hint}</span>}
           </label>
         ))}
-        <button className="btn-link" onClick={() => setShowAdvanced((v) => !v)}>
-          {showAdvanced ? 'Hide advanced ▲' : 'Advanced ▼'}
-        </button>
       </div>
 
-      {/* Active testing panel */}
+      {/* ── Enhanced passive analysis ──────────────────────────────────────── */}
+      <div className="passive-panel">
+        <button
+          className="panel-toggle-btn"
+          onClick={() => setShowEnhanced((v) => !v)}
+        >
+          <span className="passive-dot" />
+          Enhanced Passive Analysis
+          <span className="active-count-badge">
+            {ENHANCED_PASSIVE.filter((o) => options[o.key]).length}/{ENHANCED_PASSIVE.length}
+          </span>
+          <span className="toggle-arrow">{showEnhanced ? '▲' : '▼'}</span>
+        </button>
+
+        {showEnhanced && (
+          <div className="passive-body">
+            <p className="muted small panel-desc">
+              Deep JavaScript source analysis — no payloads sent. Detects dangerous code patterns, vulnerable dependencies, and information disclosures in fetched assets.
+            </p>
+            <div className="passive-grid">
+              {ENHANCED_PASSIVE.map(({ key, label, hint }) => (
+                <CheckOption
+                  key={key}
+                  optKey={key}
+                  label={label}
+                  hint={null}
+                  checked={options[key]}
+                  onChange={setOpt}
+                  disabled={isScanning}
+                />
+              ))}
+            </div>
+            <div className="hint-list">
+              {ENHANCED_PASSIVE.map(({ key, hint }) => options[key] && (
+                <span key={key} className="hint-tag">{hint}</span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Reconnaissance ────────────────────────────────────────────────── */}
+      <div className="recon-panel">
+        <button
+          className="panel-toggle-btn"
+          onClick={() => setShowRecon((v) => !v)}
+        >
+          <span className="recon-dot" />
+          Reconnaissance
+          <span className="active-count-badge recon-badge">
+            {RECON_OPTIONS.filter((o) => options[o.key]).length}/{RECON_OPTIONS.length}
+          </span>
+          <span className="toggle-arrow">{showRecon ? '▲' : '▼'}</span>
+        </button>
+
+        {showRecon && (
+          <div className="recon-body">
+            <p className="muted small panel-desc">
+              Passive information gathering from already-fetched content — technology stack fingerprinting, cloud storage references, and API endpoint mapping. No additional requests.
+            </p>
+            <div className="passive-grid">
+              {RECON_OPTIONS.map(({ key, label, hint }) => (
+                <CheckOption
+                  key={key}
+                  optKey={key}
+                  label={label}
+                  hint={null}
+                  checked={options[key]}
+                  onChange={setOpt}
+                  disabled={isScanning}
+                />
+              ))}
+            </div>
+            <div className="hint-list">
+              {RECON_OPTIONS.map(({ key, hint }) => options[key] && (
+                <span key={key} className="hint-tag recon-hint-tag">{hint}</span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Active testing ─────────────────────────────────────────────────── */}
       <div className="active-panel">
         <div className="active-panel-header">
           <div className="active-panel-title">
             <span className="active-dot" />
             Active Testing
             <span className="active-count-badge">
-              {activeCount}/{ACTIVE_KEYS.length}
+              {activeCount}/{ALL_ACTIVE_KEYS.length}
             </span>
           </div>
           <button
             className={`select-all-btn ${allActive ? 'select-all-on' : ''}`}
-            onClick={toggleSelectAll}
+            onClick={toggleSelectAllActive}
             disabled={isScanning}
           >
             {allActive ? 'Deselect All' : 'Select All'}
           </button>
         </div>
 
-        <div className="active-grid">
-          {ACTIVE_TESTS.map(({ key, label, sub }) => (
-            <label
-              key={key}
-              className={`active-test-item ${options[key] ? 'active-test-on' : ''}`}
-            >
-              <input
-                type="checkbox"
-                checked={options[key]}
-                onChange={(e) => setOptions((p) => ({ ...p, [key]: e.target.checked }))}
-                disabled={isScanning}
-              />
-              <span className="active-test-text">
-                <span className="active-test-name">{label}</span>
-                <span className="active-test-sub">{sub}</span>
-              </span>
-            </label>
-          ))}
-        </div>
+        {ACTIVE_GROUPS.map((group) => {
+          const groupKeys = group.tests.map((t) => t.key);
+          const groupCount = groupKeys.filter((k) => options[k]).length;
+          const isOpen = activeGroupsOpen[group.label];
+
+          return (
+            <div key={group.label} className="active-group">
+              <div className="active-group-header">
+                <button
+                  className="active-group-toggle"
+                  onClick={() => setActiveGroupsOpen((p) => ({ ...p, [group.label]: !p[group.label] }))}
+                >
+                  <span className={`group-arrow ${isOpen ? 'open' : ''}`}>›</span>
+                  <span className="group-label-text">{group.label}</span>
+                  <span className="group-count">{groupCount}/{group.tests.length}</span>
+                </button>
+                <button
+                  className="group-select-all"
+                  onClick={() => toggleGroup(group.label, group.tests)}
+                  disabled={isScanning}
+                >
+                  {groupKeys.every((k) => options[k]) ? 'Off' : 'All'}
+                </button>
+              </div>
+
+              {isOpen && (
+                <div className="active-grid">
+                  {group.tests.map(({ key, label, sub }) => (
+                    <label
+                      key={key}
+                      className={`active-test-item ${options[key] ? 'active-test-on' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={options[key]}
+                        onChange={(e) => setOpt(key, e.target.checked)}
+                        disabled={isScanning}
+                      />
+                      <span className="active-test-text">
+                        <span className="active-test-name">{label}</span>
+                        <span className="active-test-sub">{sub}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {someActive && (
           <div className="active-warning">
             <span className="warning-icon">⚠</span>
-            Sends real payloads to discovered endpoints. Only scan targets you own or have explicit written permission to test.
+            Sends real attack payloads to discovered endpoints — {activeCount} test category/ies enabled.
+            Only scan targets you own or have explicit written permission to test.
           </div>
         )}
       </div>
 
-      {/* Advanced settings */}
+      {/* ── Advanced settings ──────────────────────────────────────────────── */}
+      <button className="btn-link" onClick={() => setShowAdvanced((v) => !v)}>
+        {showAdvanced ? 'Hide advanced ▲' : 'Advanced settings ▼'}
+      </button>
+
       {showAdvanced && (
         <div className="advanced-panel">
           <div className="advanced-row">
@@ -233,6 +438,7 @@ export default function ScannerPanel({
         </div>
       )}
 
+      {/* ── Actions ────────────────────────────────────────────────────────── */}
       <div className="actions">
         {isScanning ? (
           <button className="btn-danger" onClick={onStop}>Stop scan</button>
@@ -244,6 +450,7 @@ export default function ScannerPanel({
         </button>
       </div>
 
+      {/* ── Scan log ───────────────────────────────────────────────────────── */}
       {log.length > 0 && (
         <div className="log" aria-live="polite" aria-label="Scan log">
           <div className="log-header">

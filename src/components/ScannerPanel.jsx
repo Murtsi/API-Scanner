@@ -8,6 +8,7 @@ const SEVERITY_LEVELS = ['low', 'medium', 'high', 'critical'];
 const ACTIVE_GROUPS = [
   {
     label: 'Injection',
+    accent: '#f43f5e',
     tests: [
       { key: 'testSqliError',    label: 'SQL Injection',     sub: 'Error-Based' },
       { key: 'testSqliBlind',    label: 'SQL Injection',     sub: 'Time-Based Blind' },
@@ -20,6 +21,7 @@ const ACTIVE_GROUPS = [
   },
   {
     label: 'Client-Side',
+    accent: '#fb923c',
     tests: [
       { key: 'testXss',          label: 'XSS Reflection',   sub: 'Reflected' },
       { key: 'testOpenRedirect', label: 'Open Redirect',     sub: 'URL Parameter' },
@@ -29,6 +31,7 @@ const ACTIVE_GROUPS = [
   },
   {
     label: 'Infrastructure',
+    accent: '#fbbf24',
     tests: [
       { key: 'testSsrf',         label: 'SSRF',              sub: 'Internal Network' },
       { key: 'testHostHeader',   label: 'Host Header',       sub: 'Injection' },
@@ -37,6 +40,7 @@ const ACTIVE_GROUPS = [
   },
   {
     label: 'Business Logic',
+    accent: '#a78bfa',
     tests: [
       { key: 'testIdor',              label: 'IDOR',           sub: 'ID Enumeration' },
       { key: 'testHpp',               label: 'Param Pollution',sub: 'Duplicate Params' },
@@ -70,16 +74,16 @@ const RECON_OPTIONS = [
 
 function CheckOption({ optKey, label, hint, checked, onChange, disabled }) {
   return (
-    <label className="option-toggle" title={hint}>
+    <label className="check-opt" title={hint}>
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(optKey, e.target.checked)}
         disabled={disabled}
       />
-      <span>
-        {label}
-        {hint && <span className="option-hint"> — {hint}</span>}
+      <span className="check-opt-inner">
+        <span className="check-opt-label">{label}</span>
+        {hint && <span className="check-opt-hint">{hint}</span>}
       </span>
     </label>
   );
@@ -101,12 +105,16 @@ export default function ScannerPanel({
   onStop,
   onClear,
 }) {
-  const [showAdvanced, setShowAdvanced]         = useState(false);
-  const [showEnhanced, setShowEnhanced]         = useState(false);
-  const [showRecon, setShowRecon]               = useState(false);
-  const [activeGroupsOpen, setActiveGroupsOpen] = useState({ Injection: true, 'Client-Side': false, Infrastructure: false, 'Business Logic': false });
+  const [showAdvanced,    setShowAdvanced]    = useState(false);
+  const [showEnhanced,    setShowEnhanced]    = useState(false);
+  const [showRecon,       setShowRecon]       = useState(false);
+  const [activeGroupsOpen, setActiveGroupsOpen] = useState({
+    Injection: true, 'Client-Side': true, Infrastructure: true, 'Business Logic': true,
+  });
 
   const setOpt = (key, val) => setOptions((p) => ({ ...p, [key]: val }));
+
+  // ── Active testing counts ──────────────────────────────────────────────────
 
   const activeCount = ALL_ACTIVE_KEYS.filter((k) => options[k]).length;
   const allActive   = activeCount === ALL_ACTIVE_KEYS.length;
@@ -120,7 +128,7 @@ export default function ScannerPanel({
     }));
   }
 
-  function toggleGroup(groupLabel, groupTests) {
+  function toggleGroup(groupTests) {
     const groupKeys = groupTests.map((t) => t.key);
     const allOn = groupKeys.every((k) => options[k]);
     setOptions((p) => ({
@@ -129,11 +137,37 @@ export default function ScannerPanel({
     }));
   }
 
+  // ── Enhanced passive counts ────────────────────────────────────────────────
+
+  const enhancedCount = ENHANCED_PASSIVE.filter((o) => options[o.key]).length;
+  const allEnhanced   = enhancedCount === ENHANCED_PASSIVE.length;
+
+  function toggleSelectAllEnhanced() {
+    const next = !allEnhanced;
+    setOptions((p) => ({
+      ...p,
+      ...Object.fromEntries(ENHANCED_PASSIVE.map((o) => [o.key, next])),
+    }));
+  }
+
+  // ── Recon counts ───────────────────────────────────────────────────────────
+
+  const reconCount = RECON_OPTIONS.filter((o) => options[o.key]).length;
+  const allRecon   = reconCount === RECON_OPTIONS.length;
+
+  function toggleSelectAllRecon() {
+    const next = !allRecon;
+    setOptions((p) => ({
+      ...p,
+      ...Object.fromEntries(RECON_OPTIONS.map((o) => [o.key, next])),
+    }));
+  }
+
   return (
     <section className="card scanner-card">
-      <h2>Target URLs</h2>
+      <h2 className="scanner-title">Target URLs</h2>
       <p className="muted small">
-        One URL per line — HTTP/HTTPS only. The scanner fetches HTML, linked JS bundles, and optional active tests from each target.
+        One URL per line — HTTP/HTTPS only. Fetches HTML, linked JS bundles, and optional active tests from each target.
       </p>
 
       <textarea
@@ -147,7 +181,10 @@ export default function ScannerPanel({
       />
 
       {/* ── Core passive options ───────────────────────────────────────────── */}
-      <div className="section-label">Passive Scanning</div>
+      <div className="section-label">
+        <span className="section-dot section-dot-passive" />
+        Passive Scanning
+      </div>
       <div className="options-row">
         {[
           { key: 'scanAssets',   label: 'JS assets',     hint: 'Scan all linked JavaScript bundles' },
@@ -169,39 +206,45 @@ export default function ScannerPanel({
 
       {/* ── Enhanced passive analysis ──────────────────────────────────────── */}
       <div className="passive-panel">
-        <button
-          className="panel-toggle-btn"
-          onClick={() => setShowEnhanced((v) => !v)}
-        >
-          <span className="passive-dot" />
-          Enhanced Passive Analysis
-          <span className="active-count-badge">
-            {ENHANCED_PASSIVE.filter((o) => options[o.key]).length}/{ENHANCED_PASSIVE.length}
-          </span>
-          <span className="toggle-arrow">{showEnhanced ? '▲' : '▼'}</span>
-        </button>
+        <div className="panel-header-row">
+          <button
+            className="panel-toggle-btn"
+            onClick={() => setShowEnhanced((v) => !v)}
+          >
+            <span className="passive-dot" />
+            <span className="panel-title-text">Enhanced Passive Analysis</span>
+            <span className="active-count-badge">
+              {enhancedCount}/{ENHANCED_PASSIVE.length}
+            </span>
+            <span className="toggle-arrow">{showEnhanced ? '▲' : '▼'}</span>
+          </button>
+          <button
+            className={`panel-select-all ${allEnhanced ? 'panel-select-on' : ''}`}
+            onClick={toggleSelectAllEnhanced}
+            disabled={isScanning}
+            title={allEnhanced ? 'Deselect all enhanced passive checks' : 'Select all enhanced passive checks'}
+          >
+            {allEnhanced ? 'Off' : 'All'}
+          </button>
+        </div>
 
         {showEnhanced && (
           <div className="passive-body">
             <p className="muted small panel-desc">
-              Deep JavaScript source analysis — no payloads sent. Detects dangerous code patterns, vulnerable dependencies, and information disclosures in fetched assets.
+              Deep JavaScript source analysis — no payloads sent. Detects dangerous code patterns,
+              vulnerable dependencies, and information disclosures in fetched assets.
             </p>
-            <div className="passive-grid">
+            <div className="check-grid check-grid-3">
               {ENHANCED_PASSIVE.map(({ key, label, hint }) => (
                 <CheckOption
                   key={key}
                   optKey={key}
                   label={label}
-                  hint={null}
+                  hint={hint}
                   checked={options[key]}
                   onChange={setOpt}
                   disabled={isScanning}
                 />
-              ))}
-            </div>
-            <div className="hint-list">
-              {ENHANCED_PASSIVE.map(({ key, hint }) => options[key] && (
-                <span key={key} className="hint-tag">{hint}</span>
               ))}
             </div>
           </div>
@@ -210,39 +253,45 @@ export default function ScannerPanel({
 
       {/* ── Reconnaissance ────────────────────────────────────────────────── */}
       <div className="recon-panel">
-        <button
-          className="panel-toggle-btn"
-          onClick={() => setShowRecon((v) => !v)}
-        >
-          <span className="recon-dot" />
-          Reconnaissance
-          <span className="active-count-badge recon-badge">
-            {RECON_OPTIONS.filter((o) => options[o.key]).length}/{RECON_OPTIONS.length}
-          </span>
-          <span className="toggle-arrow">{showRecon ? '▲' : '▼'}</span>
-        </button>
+        <div className="panel-header-row">
+          <button
+            className="panel-toggle-btn"
+            onClick={() => setShowRecon((v) => !v)}
+          >
+            <span className="recon-dot" />
+            <span className="panel-title-text">Reconnaissance</span>
+            <span className="active-count-badge recon-badge">
+              {reconCount}/{RECON_OPTIONS.length}
+            </span>
+            <span className="toggle-arrow">{showRecon ? '▲' : '▼'}</span>
+          </button>
+          <button
+            className={`panel-select-all recon-select-all ${allRecon ? 'recon-select-on' : ''}`}
+            onClick={toggleSelectAllRecon}
+            disabled={isScanning}
+            title={allRecon ? 'Deselect all recon checks' : 'Select all recon checks'}
+          >
+            {allRecon ? 'Off' : 'All'}
+          </button>
+        </div>
 
         {showRecon && (
           <div className="recon-body">
             <p className="muted small panel-desc">
-              Passive information gathering from already-fetched content — technology stack fingerprinting, cloud storage references, and API endpoint mapping. No additional requests.
+              Passive information gathering from already-fetched content — technology stack
+              fingerprinting, cloud storage references, and API endpoint mapping. No additional requests.
             </p>
-            <div className="passive-grid">
+            <div className="check-grid check-grid-3">
               {RECON_OPTIONS.map(({ key, label, hint }) => (
                 <CheckOption
                   key={key}
                   optKey={key}
                   label={label}
-                  hint={null}
+                  hint={hint}
                   checked={options[key]}
                   onChange={setOpt}
                   disabled={isScanning}
                 />
-              ))}
-            </div>
-            <div className="hint-list">
-              {RECON_OPTIONS.map(({ key, hint }) => options[key] && (
-                <span key={key} className="hint-tag recon-hint-tag">{hint}</span>
               ))}
             </div>
           </div>
@@ -271,25 +320,32 @@ export default function ScannerPanel({
         {ACTIVE_GROUPS.map((group) => {
           const groupKeys = group.tests.map((t) => t.key);
           const groupCount = groupKeys.filter((k) => options[k]).length;
+          const allGroupOn = groupKeys.every((k) => options[k]);
           const isOpen = activeGroupsOpen[group.label];
 
           return (
-            <div key={group.label} className="active-group">
+            <div
+              key={group.label}
+              className="active-group"
+              style={{ '--group-accent': group.accent }}
+            >
               <div className="active-group-header">
                 <button
                   className="active-group-toggle"
-                  onClick={() => setActiveGroupsOpen((p) => ({ ...p, [group.label]: !p[group.label] }))}
+                  onClick={() =>
+                    setActiveGroupsOpen((p) => ({ ...p, [group.label]: !p[group.label] }))
+                  }
                 >
                   <span className={`group-arrow ${isOpen ? 'open' : ''}`}>›</span>
                   <span className="group-label-text">{group.label}</span>
                   <span className="group-count">{groupCount}/{group.tests.length}</span>
                 </button>
                 <button
-                  className="group-select-all"
-                  onClick={() => toggleGroup(group.label, group.tests)}
+                  className={`group-select-all ${allGroupOn ? 'group-select-on' : ''}`}
+                  onClick={() => toggleGroup(group.tests)}
                   disabled={isScanning}
                 >
-                  {groupKeys.every((k) => options[k]) ? 'Off' : 'All'}
+                  {allGroupOn ? 'Off' : 'All'}
                 </button>
               </div>
 
@@ -321,7 +377,7 @@ export default function ScannerPanel({
         {someActive && (
           <div className="active-warning">
             <span className="warning-icon">⚠</span>
-            Sends real attack payloads to discovered endpoints — {activeCount} test category/ies enabled.
+            Sends real attack payloads to discovered endpoints — {activeCount} test{activeCount !== 1 ? 's' : ''} enabled.
             Only scan targets you own or have explicit written permission to test.
           </div>
         )}
@@ -340,10 +396,7 @@ export default function ScannerPanel({
                 type="checkbox"
                 checked={!!options.enableExperimentalModules}
                 onChange={(e) =>
-                  setOptions((p) => ({
-                    ...p,
-                    enableExperimentalModules: e.target.checked,
-                  }))
+                  setOptions((p) => ({ ...p, enableExperimentalModules: e.target.checked }))
                 }
                 disabled={isScanning}
               />
@@ -374,9 +427,7 @@ export default function ScannerPanel({
                       disabled={isScanning}
                     >
                       {SEVERITY_LEVELS.map((level) => (
-                        <option key={level} value={level}>
-                          {level}
-                        </option>
+                        <option key={level} value={level}>{level}</option>
                       ))}
                     </select>
                   </label>

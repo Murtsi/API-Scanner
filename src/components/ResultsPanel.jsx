@@ -633,10 +633,19 @@ export default function ResultsPanel({ results, isScanning, onExportJson, onExpo
           Enter URLs above and click <strong>Start scan</strong> to begin.
         </p>
         <p className="muted small">
-          Passively scans HTML, JS bundles, and 130+ exposed paths for 49+ secret patterns, security headers,
-          DOM XSS sinks, vulnerable libraries, and source maps. Active testing sends real payloads for 18
-          vulnerability classes across Injection, Client-Side, Infrastructure, and Business Logic categories.
+          Professional-grade security assessment covering secrets, headers, active exploits, and passive code analysis.
         </p>
+        <div className="empty-capabilities">
+          <span className="empty-cap">49+ Secret Patterns</span>
+          <span className="empty-cap">130+ Exposed Paths</span>
+          <span className="empty-cap">18 Attack Methods</span>
+          <span className="empty-cap">DOM XSS Sinks</span>
+          <span className="empty-cap">Vulnerable Libraries</span>
+          <span className="empty-cap">Security Headers</span>
+          <span className="empty-cap">SSRF / XXE / SSTI</span>
+          <span className="empty-cap">GraphQL Introspection</span>
+          <span className="empty-cap">Tech Fingerprinting</span>
+        </div>
       </div>
     );
   }

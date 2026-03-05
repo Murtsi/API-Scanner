@@ -31,6 +31,9 @@ export default function App() {
   // Supabase authentication removed. Implement Railway/PostgreSQL-based auth state here if needed.
   const [historyRefreshToken, setHistoryRefreshToken] = useState(0);
 
+  // Null-safe session state
+  const [session, setSession] = useState(() => (typeof window !== 'undefined' && window.session) ? window.session : { user: null });
+
   const [urlsInput, setUrlsInput] = useState('');
   const [customRulesInput, setCustomRulesInput] = useState('');
   const [options, setOptions] = useState(normalizePassiveOptions({
@@ -114,7 +117,7 @@ export default function App() {
 
       try {
         await createScanRun({
-          userId: session.user.id,
+          userId: session?.user?.id,
           targets,
           options,
           result: payload,
@@ -149,11 +152,11 @@ export default function App() {
 
   // Authentication UI removed. Add Railway/PostgreSQL-based authentication UI if needed.
 
-  const isAdmin = isAdminUser(session.user);
+  const isAdmin = isAdminUser(session?.user);
 
   return (
     <div className="page">
-      <Header user={session.user} isAdmin={isAdmin} onSignOut={handleSignOut} />
+      <Header user={session?.user} isAdmin={isAdmin} onSignOut={handleSignOut} />
       <div className="layout">
         <div className="left-col">
           {isAdmin ? <AdminPanel /> : null}

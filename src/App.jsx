@@ -7,6 +7,7 @@ import RulesPanel from './components/RulesPanel.jsx';
 import LoginPanel from './components/LoginPanel.jsx';
 import AdminPanel from './components/AdminPanel.jsx';
 import HistoryPanel from './components/HistoryPanel.jsx';
+import Header from './components/Header.jsx';
 import { useScanner } from './hooks/useScanner.js';
 import { exportJson, exportCsv } from './utils/export.js';
 import { SCAN_CONFIG } from './config/constants.js';
@@ -32,7 +33,7 @@ export default function App() {
   const [historyRefreshToken, setHistoryRefreshToken] = useState(0);
 
   // Null-safe session state
-  const [session, setSession] = useState(() => (typeof window !== 'undefined' && window.session) ? window.session : { user: null });
+  const [session, setSession] = useState(null);
 
   const [urlsInput, setUrlsInput] = useState('');
   const [customRulesInput, setCustomRulesInput] = useState('');
@@ -156,6 +157,7 @@ export default function App() {
 
   return (
     <div className="page">
+      {/* Nuclear session fallback: always null-safe */}
       <Header user={session?.user} isAdmin={isAdmin} onSignOut={handleSignOut} />
       <div className="layout">
         <div className="left-col">

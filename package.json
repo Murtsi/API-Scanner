@@ -12,11 +12,12 @@
     "backend:start": "npm --prefix backend run start"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.4",
+    "pg": "^8.20.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@types/pg": "^8.18.0",
     "@vitejs/plugin-react": "^4.2.0",
     "vite": "^5.0.0"
   }

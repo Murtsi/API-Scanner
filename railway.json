@@ -1,0 +1,21 @@
+{
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
+  "deploy": {
+    "healthcheckPath": "/",
+    "restartPolicy": "always"
+  },
+  "plugins": [
+    {
+      "name": "postgresql",
+      "env": {
+        "POSTGRES_DB": "api_scanner",
+        "POSTGRES_USER": "railway",
+        "POSTGRES_PASSWORD": "securepassword"
+      }
+    }
+  ]
+}

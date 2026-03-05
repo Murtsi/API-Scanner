@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 
 export default function LoginPanel({ onLogin, loading, error }) {
@@ -12,38 +13,34 @@ export default function LoginPanel({ onLogin, loading, error }) {
 
   return (
     <div className="auth-wrap">
-      <div className="card auth-card">
-        <h2>Sign in</h2>
-        <p className="muted small auth-subtitle">Use the account provisioned by your admin.</p>
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          <label className="auth-label">
-            Email
-            <input
-              type="email"
-              className="auth-input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-            />
-          </label>
-
-          <label className="auth-label">
-            Password
-            <input
-              type="password"
-              className="auth-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
-          </label>
-
+      <div className="auth-card" style={{ boxShadow: '0 8px 32px 0 #06B6D4', background: 'rgba(30,30,46,0.7)', backdropFilter: 'blur(16px)' }}>
+        <h1 className="hero-title" style={{ fontSize: '2.5rem', marginBottom: 8 }}>Sign in</h1>
+        <p className="muted small auth-subtitle" style={{ marginBottom: 24 }}>Use the account provisioned by your admin.</p>
+        <form onSubmit={handleSubmit} className="auth-form" style={{ width: '100%' }}>
+          <label className="auth-label" htmlFor="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            className="auth-input"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            required
+            style={{ animation: 'shimmer 2s infinite linear' }}
+          />
+          <label className="auth-label" htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            className="auth-input"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            required
+            style={{ animation: 'shimmer 2s infinite linear' }}
+          />
           {error ? <div className="auth-error">{error}</div> : null}
-
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%', marginTop: 8, background: 'linear-gradient(90deg, #8B5CF6 0%, #06B6D4 100%)', boxShadow: '0 2px 8px 0 #06B6D4' }}>
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>

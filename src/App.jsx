@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import Header from './components/Header.jsx';
 import ScannerPanel from './components/ScannerPanel.jsx';
@@ -25,9 +26,8 @@ function mergeScanOptions(previousOptions, incomingOptions) {
 }
 
 export default function App() {
-  // Supabase authentication removed. Implement Railway/PostgreSQL-based auth state here if needed.
+  const [session, setSession] = useState(null);
   const [historyRefreshToken, setHistoryRefreshToken] = useState(0);
-
   const [urlsInput, setUrlsInput] = useState('');
   const [customRulesInput, setCustomRulesInput] = useState('');
   const [options, setOptions] = useState(normalizePassiveOptions({
@@ -51,16 +51,13 @@ export default function App() {
     testPathTraversal: false,
     testSsti: false,
     testXxe: false,
-    // Active — client-side
     testXss: false,
     testOpenRedirect: false,
     testCorsAbuse: false,
     testCrlf: false,
-    // Active — infrastructure
     testSsrf: false,
     testHostHeader: false,
     testVerbTampering: false,
-    // Active — business logic
     testIdor: false,
     testHpp: false,
     testGraphqlIntrospect: false,
@@ -73,7 +70,13 @@ export default function App() {
   const runCounterRef = useRef(0);
   const lastCompletedRunRef = useRef(0);
 
-  // Authentication logic removed. Add Railway/PostgreSQL-based authentication if needed.
+  // Handle login
+  const handleLogin = (userData) => {
+    setSession({ user: { id: userData.id, email: userData.email } });
+  };
+
+  // Handle logout
+  const handleLogout = () => setSession(null);
 
   const handleScan = () => {
     runCounterRef.current += 1;
@@ -84,8 +87,6 @@ export default function App() {
     setUrlsInput('');
     setCustomRulesInput('');
   };
-
-  // Login and sign-out logic removed. Add Railway/PostgreSQL-based authentication if needed.
 
   useEffect(() => {
     const saveCompletedRun = async () => {
@@ -148,13 +149,17 @@ export default function App() {
     }
   };
 
-  // Authentication UI removed. Add Railway/PostgreSQL-based authentication UI if needed.
+  const isAdmin = isAdminUser(session?.user);
 
-  const isAdmin = isAdminUser(session.user);
+  // If not logged in, show login panel
+  if (!session) {
+    return <LoginPanel onLogin={handleLogin} />;
+  }
 
+  // If logged in, show main app
   return (
     <div className="page">
-      <Header user={session.user} isAdmin={isAdmin} onSignOut={handleSignOut} />
+      <Header user={session.user} isAdmin={isAdmin} onSignOut={handleLogout} />
       <div className="layout">
         <div className="left-col">
           {isAdmin ? <AdminPanel /> : null}

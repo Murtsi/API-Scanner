@@ -1,0 +1,13 @@
+[services]
+  [services.web]
+    build = "npm run build"
+    start = "npm run preview"
+    env = ["DATABASE_URL"]
+    healthcheck = "/"
+    port = 4173
+
+  [services.db]
+    type = "postgres"
+    image = "postgres:15"
+    env = ["POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"]
+    port = 5432

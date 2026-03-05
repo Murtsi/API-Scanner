@@ -2,7 +2,7 @@
 import { useState } from 'react';
 
 // Accept onSignOut for compatibility with App.jsx
-export default function LoginPanel({ onLogin, onSignOut, loading, error }) {
+function LoginPanel({ onLogin, onSignOut, loading, error }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -45,7 +45,6 @@ export default function LoginPanel({ onLogin, onSignOut, loading, error }) {
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
-        {/* Optional: sign out button for completeness, but not required for login */}
         {onSignOut && (
           <button type="button" className="btn-secondary" style={{ marginTop: 16 }} onClick={onSignOut}>
             Sign out
@@ -54,4 +53,14 @@ export default function LoginPanel({ onLogin, onSignOut, loading, error }) {
       </div>
     </div>
   );
+}
+
+LoginPanel.defaultProps = {
+  onLogin: () => {},
+  onSignOut: null,
+  loading: false,
+  error: null,
+};
+
+export default LoginPanel;
 }

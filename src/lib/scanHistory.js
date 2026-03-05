@@ -1,47 +1,41 @@
-import { supabase } from './supabaseClient.js';
+const { query } = require('./db.js');
 
 export async function createScanRun({ userId, targets, options, result }) {
-  const payload = {
-    owner_id: userId,
-    targets,
-    options,
-    result,
-  };
-
-  const { data, error } = await supabase
-    .from('scan_runs')
-    .insert(payload)
-    .select('id, created_at')
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to save scan run');
+  const insertQuery = `
+    INSERT INTO scan_runs (owner_id, targets, options, result, created_at)
+    VALUES ($1, $2, $3, $4, NOW())
+    RETURNING id, created_at
+  `;
+  const params = [userId, JSON.stringify(targets), JSON.stringify(options), JSON.stringify(result)];
+  try {
+    const { rows } = await query(insertQuery, params);
+    return rows[0];
+  } catch (err) {
+    throw new Error(err.message || 'Failed to save scan run');
   }
-
-  return data;
 }
 
-export async function listScanRuns(limit = 20) {
-  const { data, error } = await supabase
-    .from('scan_runs')
-    .select('id, targets, options, result, created_at')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    throw new Error(error.message || 'Failed to fetch scan history');
+export async function listScanRuns(userId, limit = 20) {
+  const selectQuery = `
+    SELECT id, targets, options, result, created_at
+    FROM scan_runs
+    WHERE owner_id = $1
+    ORDER BY created_at DESC
+    LIMIT $2
+  `;
+  try {
+    const { rows } = await query(selectQuery, [userId, limit]);
+    return rows;
+  } catch (err) {
+    throw new Error(err.message || 'Failed to fetch scan history');
   }
-
-  return data || [];
 }
 
 export async function deleteScanRun(runId) {
-  const { error } = await supabase
-    .from('scan_runs')
-    .delete()
-    .eq('id', runId);
-
-  if (error) {
-    throw new Error(error.message || 'Failed to delete scan run');
+  const deleteQuery = `DELETE FROM scan_runs WHERE id = $1`;
+  try {
+    await query(deleteQuery, [runId]);
+  } catch (err) {
+    throw new Error(err.message || 'Failed to delete scan run');
   }
 }

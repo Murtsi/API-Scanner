@@ -1,5 +1,5 @@
 import { methodNotAllowed, serverError } from '../_http.js';
-import { requireAdmin } from '../_supabase.js';
+// Supabase admin removed. Implement Railway/PostgreSQL-based admin logic here if needed.
 
 export default async function handler(req, res) {
   try {

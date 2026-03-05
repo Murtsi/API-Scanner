@@ -10,8 +10,7 @@ import { useScanner } from './hooks/useScanner.js';
 import { exportJson, exportCsv } from './utils/export.js';
 import { SCAN_CONFIG } from './config/constants.js';
 import { PASSIVE_MODULES, passiveModuleDefaults, normalizePassiveOptions } from './utils/passiveModules.js';
-import { supabase } from './lib/supabaseClient.js';
-import { isAdminUser, signInWithEmail, signOut } from './lib/auth.js';
+import { isAdminUser } from './lib/auth.js';
 import { createScanRun } from './lib/scanHistory.js';
 
 function mergeScanOptions(previousOptions, incomingOptions) {
@@ -26,10 +25,7 @@ function mergeScanOptions(previousOptions, incomingOptions) {
 }
 
 export default function App() {
-  const [session, setSession] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [authError, setAuthError] = useState('');
+  // Supabase authentication removed. Implement Railway/PostgreSQL-based auth state here if needed.
   const [historyRefreshToken, setHistoryRefreshToken] = useState(0);
 
   const [urlsInput, setUrlsInput] = useState('');
@@ -77,24 +73,7 @@ export default function App() {
   const runCounterRef = useRef(0);
   const lastCompletedRunRef = useRef(0);
 
-  useEffect(() => {
-    let mounted = true;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setSession(data.session ?? null);
-      setAuthLoading(false);
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession ?? null);
-    });
-
-    return () => {
-      mounted = false;
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+  // Authentication logic removed. Add Railway/PostgreSQL-based authentication if needed.
 
   const handleScan = () => {
     runCounterRef.current += 1;
@@ -106,20 +85,7 @@ export default function App() {
     setCustomRulesInput('');
   };
 
-  const handleLogin = async ({ email, password }) => {
-    setAuthError('');
-    setLoginLoading(true);
-    const { error } = await signInWithEmail(email, password);
-    if (error) {
-      setAuthError(error.message);
-    }
-    setLoginLoading(false);
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
-    clearAll();
-  };
+  // Login and sign-out logic removed. Add Railway/PostgreSQL-based authentication if needed.
 
   useEffect(() => {
     const saveCompletedRun = async () => {
@@ -182,20 +148,7 @@ export default function App() {
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="auth-wrap">
-        <div className="card auth-card">
-          <h2>Loading authentication…</h2>
-          <p className="muted small">Connecting to Supabase.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return <LoginPanel onLogin={handleLogin} loading={loginLoading} error={authError} />;
-  }
+  // Authentication UI removed. Add Railway/PostgreSQL-based authentication UI if needed.
 
   const isAdmin = isAdminUser(session.user);
 

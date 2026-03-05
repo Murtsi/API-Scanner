@@ -1,4 +1,4 @@
-const { query } = require('./db.js');
+import { query } from './db.js';
 
 export async function createScanRun({ userId, targets, options, result }) {
   const insertQuery = `

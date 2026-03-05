@@ -4,38 +4,26 @@ import './ScannerDashboard.css';
 function ScannerDashboard({ stats = {} }) {
   // stats: { endpoint, status, responseTime, vulnScore, scanCount }
   return (
-    <section className="dashboard-hero">
-      <div className="dashboard-hero-title">
-        <h1 className="hero-title">API Scanner Pro</h1>
-        <div className="scan-counter-glow">
-          <span className="scan-counter-label">Live Scans</span>
-          <span className="scan-counter-value">{stats?.scanCount || 0}</span>
-        </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10">
+        <h3 className="text-lg font-semibold text-gray-300 mb-2">Total Scans</h3>
+        <div className="text-3xl font-bold text-white">{stats.scanCount.toLocaleString()}</div>
       </div>
-      <div className="dashboard-cards">
-        <div className="glass-card">
-          <div className="card-label">Endpoint</div>
-          <div className="card-value">{stats?.endpoint || '-'}</div>
-        </div>
-        <div className="glass-card">
-          <div className="card-label">Status</div>
-          <div className={`card-value status status-${stats?.status || 'unknown'}`}>{stats?.status || '-'}</div>
-        </div>
-        <div className="glass-card">
-          <div className="card-label">Response</div>
-          <div className="card-value">{stats?.responseTime != null ? stats.responseTime + ' ms' : '-'}</div>
-        </div>
-        <div className="glass-card">
-          <div className="card-label">Vuln Score</div>
-          <div className={`card-value vuln-score vuln-score-${stats?.vulnScore || 0}`}>{stats?.vulnScore || 0}</div>
-        </div>
+      <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10">
+        <h3 className="text-lg font-semibold text-gray-300 mb-2">Total APIs</h3>
+        <div className="text-3xl font-bold text-white">{stats.totalApis.toLocaleString()}</div>
       </div>
-    </section>
+      <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10">
+        <h3 className="text-lg font-semibold text-gray-300 mb-2">Vulnerabilities Found</h3>
+        <div className="text-3xl font-bold text-white">{stats.vulnsFound.toLocaleString()}</div>
+      </div>
+    </div>
+  )
   );
 }
 
 ScannerDashboard.defaultProps = {
-  stats: { scanCount: 0, endpoint: '-', status: '-', responseTime: 0, vulnScore: 0 },
+  stats: { scanCount: 0, totalApis: 0, vulnsFound: 0 },
 };
 
 export default ScannerDashboard;

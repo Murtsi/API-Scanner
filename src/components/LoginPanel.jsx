@@ -1,66 +1,43 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react'
 
-// Accept onSignOut for compatibility with App.jsx
-function LoginPanel({ onLogin, onSignOut, loading, error }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+const LoginPanel = ({ onLogin }) => {
+  const [email, setEmail] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!email || !password) return;
-    await onLogin({ email, password });
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    // Fake login
+    setTimeout(() => {
+      onLogin({ id: '1', email })
+      setLoading(false)
+    }, 1000)
+  }
 
   return (
-    <div className="auth-wrap">
-      <div className="auth-card" style={{ boxShadow: '0 8px 32px 0 #06B6D4', background: 'rgba(30,30,46,0.7)', backdropFilter: 'blur(16px)' }}>
-        <h1 className="hero-title" style={{ fontSize: '2.5rem', marginBottom: 8 }}>Sign in</h1>
-        <p className="muted small auth-subtitle" style={{ marginBottom: 24 }}>Use the account provisioned by your admin.</p>
-        <form onSubmit={handleSubmit} className="auth-form" style={{ width: '100%' }}>
-          <label className="auth-label" htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            className="auth-input"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            required
-            style={{ animation: 'shimmer 2s infinite linear' }}
-          />
-          <label className="auth-label" htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            className="auth-input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            required
-            style={{ animation: 'shimmer 2s infinite linear' }}
-          />
-          {error ? <div className="auth-error">{error}</div> : null}
-          <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%', marginTop: 8, background: 'linear-gradient(90deg, #8B5CF6 0%, #06B6D4 100%)', boxShadow: '0 2px 8px 0 #06B6D4' }}>
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-        {onSignOut && (
-          <button type="button" className="btn-secondary" style={{ marginTop: 16 }} onClick={onSignOut}>
-            Sign out
-          </button>
-        )}
-      </div>
+    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20">
+      <h2 className="text-2xl font-bold text-white mb-6 text-center">Login</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="email"
+          placeholder="admin@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400"
+          required
+        />
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50"
+        >
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
+      </form>
     </div>
-  );
+  )
 }
 
-LoginPanel.defaultProps = {
-  onLogin: () => {},
-  onSignOut: null,
-  loading: false,
-  error: null,
-};
-
-export default LoginPanel;
+export default LoginPanel
 }

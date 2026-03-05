@@ -1,0 +1,96 @@
+.dashboard-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 40vh;
+  padding-top: 48px;
+  background: var(--gradient);
+  background-clip: padding-box;
+  border-radius: 0 0 48px 48px;
+  box-shadow: 0 8px 32px 0 rgba(8,8,32,0.12);
+  margin-bottom: 48px;
+}
+.dashboard-hero-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.hero-title {
+  font-family: 'Figtree', sans-serif;
+  font-size: 4rem;
+  font-weight: 700;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: var(--spacing);
+  letter-spacing: -2px;
+  text-shadow: 0 0 16px var(--teal);
+  animation: fadeIn 0.6s cubic-bezier(.4,0,.2,1);
+}
+.scan-counter-glow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing);
+  font-size: 1.5rem;
+  color: var(--neon);
+  text-shadow: 0 0 8px var(--neon);
+  animation: fadeIn 0.8s 0.1s backwards;
+}
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: calc(var(--spacing) * 2);
+  margin-top: calc(var(--spacing) * 3);
+}
+.glass-card {
+  background: var(--glass);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(var(--glass-blur));
+  padding: calc(var(--spacing) * 3) calc(var(--spacing) * 2);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 120px;
+  animation: fadeInUp 0.7s cubic-bezier(.4,0,.2,1);
+  transition: transform 0.2s cubic-bezier(.4,0,.2,1), box-shadow 0.2s;
+}
+.glass-card:hover {
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 8px 32px 0 var(--teal);
+}
+.card-label {
+  font-size: 1rem;
+  color: #b0b8d0;
+  margin-bottom: var(--spacing);
+}
+.card-value {
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -1px;
+}
+.status-200 { color: #22d3ee; }
+.status-401 { color: #f59e42; }
+.status-500 { color: #ef4444; }
+.vuln-score-A { color: #22d3ee; }
+.vuln-score-F { color: #ef4444; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(32px); }
+  to { opacity: 1; transform: none; }
+}
+@media (max-width: 900px) {
+  .dashboard-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+  }
+}

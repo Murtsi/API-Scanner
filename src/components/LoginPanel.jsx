@@ -1,8 +1,27 @@
-
 import React, { useState } from 'react'
 import { signInWithEmail } from '../lib/auth.js'
 
-const LoginPanel = ({ onLogin }) => {
+const ShieldIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M12 2L4 6V12C4 16.42 7.61 20.57 12 22C16.39 20.57 20 16.42 20 12V6L12 2Z"
+      fill="rgba(232,64,74,0.15)"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M9 12L11 14L15 10"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+export default function LoginPanel({ onLogin }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -23,42 +42,46 @@ const LoginPanel = ({ onLogin }) => {
   }
 
   return (
-    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20">
-      <h2 className="text-2xl font-bold text-white mb-6 text-center">Login</h2>
-      {error && (
-        <div className="mb-4 p-3 bg-red-500/20 border border-red-500/40 rounded-lg text-red-300 text-sm">
-          {error}
+    <div className="auth-page">
+      <div className="auth-brand">
+        <div className="auth-logo">
+          <ShieldIcon />
         </div>
-      )}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400"
-          required
-          autoComplete="email"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-400"
-          required
-          autoComplete="current-password"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50"
-        >
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
+        <h1 className="auth-title">API<span>Scanner</span></h1>
+        <p className="auth-subtitle">Professional Security Assessment Platform</p>
+      </div>
+
+      <div className="auth-card">
+        {error && <div className="auth-error">{error}</div>}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <input
+            className="auth-input"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+          <input
+            className="auth-input"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+          />
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={loading}
+            style={{ marginTop: '4px' }}
+          >
+            {loading ? 'Logging in…' : 'Login'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }
-
-export default LoginPanel

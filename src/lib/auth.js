@@ -1,7 +1,9 @@
 
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
 // POST to /api/auth/login, store JWT in localStorage
 export async function signInWithEmail(email, password) {
-  const res = await fetch('/api/auth/login', {
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password })

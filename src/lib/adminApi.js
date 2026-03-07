@@ -1,12 +1,14 @@
 import { getAccessToken } from './auth.js';
 
+const API_BASE = import.meta.env.VITE_API_URL || ''
+
 async function request(path, options = {}) {
   const token = await getAccessToken();
   if (!token) {
     throw new Error('Not authenticated');
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

@@ -10,12 +10,19 @@ const app = express();
 const port = Number.parseInt(process.env.PORT || '8787', 10);
 
 // ── CORS — restrict to the configured frontend origin ─────────────────────────
-const allowedOrigin = process.env.FRONTEND_ORIGIN;
-if (!allowedOrigin) {
+// Supports comma-separated list: FRONTEND_ORIGIN=https://a.com,https://b.com
+const rawOrigins = process.env.FRONTEND_ORIGIN || '';
+const allowedOrigins = rawOrigins
+  .split(',')
+  .map((o) => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+if (allowedOrigins.length === 0) {
   console.warn('WARNING: FRONTEND_ORIGIN is not set — CORS is disabled. Set it to your frontend URL.');
 }
+
 app.use(cors({
-  origin: allowedOrigin || false,
+  origin: allowedOrigins.length === 1 ? allowedOrigins[0] : (allowedOrigins.length > 1 ? allowedOrigins : false),
   credentials: true,
 }));
 

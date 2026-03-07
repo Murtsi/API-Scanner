@@ -1,5 +1,6 @@
 import express from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { findUser, verifyPassword } from './userStore.js';
 
 const router = express.Router();
 
@@ -50,14 +51,12 @@ function safeEqual(a, b) {
 
 // ── Auth routes ───────────────────────────────────────────────────────────────
 
-router.post('/api/auth/login', (req, res) => {
+router.post('/api/auth/login', async (req, res) => {
   const secret = process.env.AUTH_SECRET;
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPassword = process.env.ADMIN_PASSWORD;
 
-  if (!secret || !adminEmail || !adminPassword) {
+  if (!secret) {
     return res.status(503).json({
-      error: 'Auth not configured — set AUTH_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD in environment',
+      error: 'Auth not configured — set AUTH_SECRET in environment',
     });
   }
 
@@ -66,15 +65,18 @@ router.post('/api/auth/login', (req, res) => {
     return res.status(400).json({ error: 'email and password are required' });
   }
 
-  const emailOk = safeEqual(email.toLowerCase(), adminEmail.toLowerCase());
-  const passOk = safeEqual(password, adminPassword);
-
-  if (!emailOk || !passOk) {
+  const user = findUser(email);
+  if (!user) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
-  const token = signToken({ userId: 'admin', email: adminEmail, role: 'admin' }, secret);
-  return res.json({ token, user: { email: adminEmail, role: 'admin' } });
+  const ok = await verifyPassword(password, user.passwordHash);
+  if (!ok) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const token = signToken({ userId: user.email, email: user.email, role: user.role }, secret);
+  return res.json({ token, user: { email: user.email, role: user.role } });
 });
 
 router.post('/api/auth/logout', (_req, res) => {

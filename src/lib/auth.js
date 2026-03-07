@@ -32,12 +32,7 @@ export function getSession() {
   return { user: JSON.parse(user) };
 }
 
-// Check if user is admin
+// Check if user is admin — role is set by the backend on login
 export function isAdminUser(user) {
-  if (!user) return false;
-  const configured = (import.meta.env.VITE_ADMIN_EMAILS || '')
-    .split(',')
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-  return configured.includes((user.email || '').toLowerCase());
+  return user?.role === 'admin';
 }

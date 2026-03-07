@@ -4,7 +4,6 @@ import { createJob, getJob, listJobs, updateJob, appendJobLog } from './jobStore
 import { enqueue } from './queue.js';
 import { runScanJob } from './scannerService.js';
 import authRouter from './authRoutes.js';
-import { requireAuth } from './authMiddleware.js';
 
 const app = express();
 const port = Number.parseInt(process.env.PORT || '8787', 10);
@@ -49,13 +48,13 @@ app.get('/health', (_req, res) => {
 });
 
 // ── Scan endpoints (protected) ────────────────────────────────────────────────
-app.get('/api/v1/scans', requireAuth, (req, res) => {
+app.get('/api/v1/scans', (req, res) => {
   const limit = Number.parseInt(req.query.limit || '20', 10);
   const jobs = listJobs(Number.isFinite(limit) ? Math.min(limit, 100) : 20);
   res.json({ jobs });
 });
 
-app.get('/api/v1/scans/:id', requireAuth, (req, res) => {
+app.get('/api/v1/scans/:id', (req, res) => {
   const job = getJob(req.params.id);
   if (!job) {
     return res.status(404).json({ error: 'Job not found' });
@@ -64,7 +63,7 @@ app.get('/api/v1/scans/:id', requireAuth, (req, res) => {
   return res.json({ job });
 });
 
-app.post('/api/v1/scans/:id/cancel', requireAuth, (req, res) => {
+app.post('/api/v1/scans/:id/cancel', (req, res) => {
   const job = getJob(req.params.id);
   if (!job) {
     return res.status(404).json({ error: 'Job not found' });
@@ -80,7 +79,7 @@ app.post('/api/v1/scans/:id/cancel', requireAuth, (req, res) => {
   return res.json({ job: updated });
 });
 
-app.post('/api/v1/scans', requireAuth, (req, res) => {
+app.post('/api/v1/scans', (req, res) => {
   const { targets, options = {} } = req.body ?? {};
 
   if (!Array.isArray(targets) || targets.length === 0) {

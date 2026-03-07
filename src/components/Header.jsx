@@ -1,6 +1,6 @@
 import { BASE_RULES } from '../utils/patterns.js';
 
-export default function Header({ user, isAdmin, onSignOut }) {
+export default function Header() {
   return (
     <header className="header">
       {/* Brand */}
@@ -48,14 +48,7 @@ export default function Header({ user, isAdmin, onSignOut }) {
         </div>
       </div>
 
-      {/* User area */}
-      <div className="header-user">
-        {isAdmin && <span className="pill pill-admin">Admin</span>}
-        <span className="pill pill-email" title={user?.email}>{user?.email || 'Signed in'}</span>
-        <button type="button" className="btn-secondary btn-signout" onClick={onSignOut}>
-          Sign out
-        </button>
-      </div>
+      <div className="header-user" />
     </header>
   );
 }

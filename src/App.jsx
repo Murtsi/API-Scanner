@@ -1,19 +1,15 @@
 import React, { useState, useCallback } from 'react'
 import Header from './components/Header'
-import LoginPanel from './components/LoginPanel'
 import ScannerPanel from './components/ScannerPanel'
 import ResultsPanel from './components/ResultsPanel'
 import HistoryPanel from './components/HistoryPanel'
 import RulesPanel from './components/RulesPanel'
-import AdminPanel from './components/AdminPanel'
 import { useScanner } from './hooks/useScanner'
-import { getSession, signOut, isAdminUser } from './lib/auth'
 import { PASSIVE_MODULES, passiveModuleDefaults } from './utils/passiveModules'
 import { exportJson, exportCsv } from './utils/export'
 // NO CSS import — app.css is loaded in main.jsx
 
 function App() {
-  const [session, setSession] = useState(() => getSession())
   const [urlsInput, setUrlsInput] = useState('')
   const [customRulesInput, setCustomRulesInput] = useState('')
   const [options, setOptions] = useState(passiveModuleDefaults)
@@ -21,17 +17,6 @@ function App() {
 
   const { results, log, isScanning, startScan, stopScan, clearAll, hydrateFromHistory } =
     useScanner()
-
-  // getSession() returns { user: {...} } — extract the user object
-  const user = session?.user ?? session
-  const isAdmin = isAdminUser(user)
-
-  const handleLogin = (user) => setSession({ user })
-
-  const handleSignOut = () => {
-    signOut()
-    setSession(null)
-  }
 
   const handleScan = useCallback(async () => {
     await startScan(urlsInput, customRulesInput, options)
@@ -47,13 +32,9 @@ function App() {
     hydrateFromHistory(run.result)
   }, [hydrateFromHistory])
 
-  if (!session) {
-    return <LoginPanel onLogin={handleLogin} />
-  }
-
   return (
     <div id="app">
-      <Header user={user} isAdmin={isAdmin} onSignOut={handleSignOut} />
+      <Header />
 
       <main className="main-grid">
         <div className="col-scanner">
@@ -89,7 +70,6 @@ function App() {
           refreshToken={historyRefreshToken}
           onLoadRun={handleLoadRun}
         />
-        {isAdmin && <AdminPanel />}
       </div>
     </div>
   )

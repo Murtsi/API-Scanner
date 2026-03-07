@@ -1,5 +1,5 @@
 import { methodNotAllowed, serverError } from '../_http.js';
-// Supabase admin removed. Implement Railway/PostgreSQL-based admin logic here if needed.
+import { requireAdmin } from '../_requireAdmin.js';
 
 export default async function handler(req, res) {
   try {
@@ -10,38 +10,10 @@ export default async function handler(req, res) {
     const auth = await requireAdmin(req, res);
     if (!auth) return;
 
-    const { adminClient } = auth;
-    const { email, password, role = 'user' } = req.body || {};
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'email and password are required' });
-    }
-
-    if (String(password).length < 8) {
-      return res.status(400).json({ error: 'password must be at least 8 characters' });
-    }
-
-    const normalizedRole = role === 'admin' ? 'admin' : 'user';
-
-    const { data, error } = await adminClient.auth.admin.createUser({
-      email: String(email).trim(),
-      password: String(password),
-      email_confirm: true,
-      app_metadata: {
-        role: normalizedRole,
-      },
-    });
-
-    if (error) {
-      return res.status(400).json({ error: error.message });
-    }
-
-    return res.status(201).json({
-      user: {
-        id: data.user?.id,
-        email: data.user?.email,
-        role: data.user?.app_metadata?.role || 'user',
-      },
+    // User management has not yet been migrated from Supabase.
+    // Implement PostgreSQL-based user creation here once a users table is added.
+    return res.status(501).json({
+      error: 'User management is not yet implemented. The Supabase migration is incomplete.',
     });
   } catch (error) {
     return serverError(res, error, 'Create user failed');

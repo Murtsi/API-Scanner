@@ -9,4 +9,12 @@ export default defineConfig({
   build: {
     target: 'esnext',
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+      },
+    },
+  },
 });

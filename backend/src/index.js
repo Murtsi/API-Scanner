@@ -3,24 +3,52 @@ import cors from 'cors';
 import { createJob, getJob, listJobs, updateJob, appendJobLog } from './jobStore.js';
 import { enqueue } from './queue.js';
 import { runScanJob } from './scannerService.js';
+import authRouter from './authRoutes.js';
+import { requireAuth } from './authMiddleware.js';
 
 const app = express();
 const port = Number.parseInt(process.env.PORT || '8787', 10);
 
-app.use(cors());
+// ── CORS — restrict to the configured frontend origin ─────────────────────────
+const allowedOrigin = process.env.FRONTEND_ORIGIN;
+if (!allowedOrigin) {
+  console.warn('WARNING: FRONTEND_ORIGIN is not set — CORS is disabled. Set it to your frontend URL.');
+}
+app.use(cors({
+  origin: allowedOrigin || false,
+  credentials: true,
+}));
+
 app.use(express.json({ limit: '1mb' }));
 
+// ── Auth routes (public — no token required) ──────────────────────────────────
+app.use(authRouter);
+
+// ── SSRF blocklist ────────────────────────────────────────────────────────────
+const PRIVATE_HOST_RE = /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|::1$|0\.0\.0\.0|metadata\.google\.internal)$/i;
+
+function isSsrfTarget(urlStr) {
+  try {
+    const { hostname } = new URL(urlStr);
+    return PRIVATE_HOST_RE.test(hostname);
+  } catch {
+    return true;
+  }
+}
+
+// ── Health (public) ───────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'api-scanner-backend' });
 });
 
-app.get('/api/v1/scans', (req, res) => {
+// ── Scan endpoints (protected) ────────────────────────────────────────────────
+app.get('/api/v1/scans', requireAuth, (req, res) => {
   const limit = Number.parseInt(req.query.limit || '20', 10);
   const jobs = listJobs(Number.isFinite(limit) ? Math.min(limit, 100) : 20);
   res.json({ jobs });
 });
 
-app.get('/api/v1/scans/:id', (req, res) => {
+app.get('/api/v1/scans/:id', requireAuth, (req, res) => {
   const job = getJob(req.params.id);
   if (!job) {
     return res.status(404).json({ error: 'Job not found' });
@@ -29,7 +57,7 @@ app.get('/api/v1/scans/:id', (req, res) => {
   return res.json({ job });
 });
 
-app.post('/api/v1/scans/:id/cancel', (req, res) => {
+app.post('/api/v1/scans/:id/cancel', requireAuth, (req, res) => {
   const job = getJob(req.params.id);
   if (!job) {
     return res.status(404).json({ error: 'Job not found' });
@@ -45,7 +73,7 @@ app.post('/api/v1/scans/:id/cancel', (req, res) => {
   return res.json({ job: updated });
 });
 
-app.post('/api/v1/scans', (req, res) => {
+app.post('/api/v1/scans', requireAuth, (req, res) => {
   const { targets, options = {} } = req.body ?? {};
 
   if (!Array.isArray(targets) || targets.length === 0) {
@@ -55,10 +83,17 @@ app.post('/api/v1/scans', (req, res) => {
   const cleanedTargets = targets
     .map((target) => (typeof target === 'string' ? target.trim() : ''))
     .filter(Boolean)
-    .filter((target) => /^https?:\/\//i.test(target));
+    .filter((target) => /^https?:\/\//i.test(target))
+    .filter((target) => {
+      if (isSsrfTarget(target)) {
+        console.warn(`[SSRF] Blocked private/internal target: ${target}`);
+        return false;
+      }
+      return true;
+    });
 
   if (cleanedTargets.length === 0) {
-    return res.status(400).json({ error: 'No valid http/https targets provided' });
+    return res.status(400).json({ error: 'No valid public http/https targets provided' });
   }
 
   const job = createJob({

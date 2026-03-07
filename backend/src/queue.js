@@ -15,7 +15,9 @@ function pump() {
 
     Promise.resolve()
       .then(task)
-      .catch(() => {})
+      .catch((err) => {
+        console.error('[queue] Unhandled task error:', err?.message || err);
+      })
       .finally(() => {
         active -= 1;
         pump();

@@ -18,7 +18,6 @@ function ScannerDashboard({ stats = {} }) {
         <div className="text-3xl font-bold text-white">{stats.vulnsFound.toLocaleString()}</div>
       </div>
     </div>
-  )
   );
 }
 

@@ -8,8 +8,9 @@ export async function signInWithEmail(email, password) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password })
   });
-  if (!res.ok) throw new Error('Login failed');
-  const { token, user } = await res.json();
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Login failed (${res.status})`);
+  const { token, user } = data;
   localStorage.setItem('token', token);
   localStorage.setItem('user', JSON.stringify(user));
   return user;

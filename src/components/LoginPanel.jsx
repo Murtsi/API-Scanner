@@ -40,4 +40,3 @@ const LoginPanel = ({ onLogin }) => {
 }
 
 export default LoginPanel
-}

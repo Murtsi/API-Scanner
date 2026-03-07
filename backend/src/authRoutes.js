@@ -65,18 +65,30 @@ router.post('/api/auth/login', async (req, res) => {
     return res.status(400).json({ error: 'email and password are required' });
   }
 
-  const user = findUser(email);
-  if (!user) {
+  // Try JSON user store first
+  let matchedUser = findUser(email);
+  let ok = false;
+
+  if (matchedUser) {
+    ok = await verifyPassword(password, matchedUser.passwordHash);
+  } else {
+    // Fallback: ADMIN_EMAIL + ADMIN_PASSWORD env vars (for Railway / no-volume deploys)
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (adminEmail && adminPassword &&
+        email.toLowerCase() === adminEmail.toLowerCase() &&
+        safeEqual(password, adminPassword)) {
+      ok = true;
+      matchedUser = { email: adminEmail, role: 'admin' };
+    }
+  }
+
+  if (!ok || !matchedUser) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
-  const ok = await verifyPassword(password, user.passwordHash);
-  if (!ok) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-
-  const token = signToken({ userId: user.email, email: user.email, role: user.role }, secret);
-  return res.json({ token, user: { email: user.email, role: user.role } });
+  const token = signToken({ userId: matchedUser.email, email: matchedUser.email, role: matchedUser.role }, secret);
+  return res.json({ token, user: { email: matchedUser.email, role: matchedUser.role } });
 });
 
 router.post('/api/auth/logout', (_req, res) => {

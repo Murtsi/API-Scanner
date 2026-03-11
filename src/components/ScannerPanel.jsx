@@ -524,7 +524,7 @@ export default function ScannerPanel({
 
       {/* ── Scan log ───────────────────────────────────────────────────────── */}
       {log.length > 0 && (
-        <div className="log" aria-live="polite" aria-label="Scan log">
+        <div className={`log${isScanning ? ' scanning' : ''}`} aria-live="polite" aria-label="Scan log">
           <div className="log-header">
             <span className="log-dot" />
             <span className="log-title">Scan log</span>

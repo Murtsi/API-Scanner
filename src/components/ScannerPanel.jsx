@@ -8,43 +8,62 @@ const SEVERITY_LEVELS = ['low', 'medium', 'high', 'critical'];
 const ACTIVE_GROUPS = [
   {
     label: 'Injection',
+    icon: '💉',
     accent: '#f43f5e',
     tests: [
-      { key: 'testSqliError',    label: 'SQL Injection',     sub: 'Error-Based' },
-      { key: 'testSqliBlind',    label: 'SQL Injection',     sub: 'Time-Based Blind' },
-      { key: 'testNosql',        label: 'NoSQL Injection',   sub: 'MongoDB Operators' },
-      { key: 'testCmdi',         label: 'Command Injection', sub: 'OS Shell' },
-      { key: 'testPathTraversal',label: 'Path Traversal',    sub: 'LFI / File Read' },
-      { key: 'testSsti',         label: 'Template Injection',sub: 'SSTI' },
-      { key: 'testXxe',          label: 'XML Injection',     sub: 'XXE' },
+      { key: 'testSqliError',    label: 'SQL Injection',      sub: 'Error-Based' },
+      { key: 'testSqliBlind',    label: 'SQL Injection',      sub: 'Time-Based Blind' },
+      { key: 'testNosql',        label: 'NoSQL Injection',    sub: 'MongoDB Operators' },
+      { key: 'testCmdi',         label: 'Command Injection',  sub: 'OS Shell' },
+      { key: 'testPathTraversal',label: 'Path Traversal',     sub: 'LFI / File Read' },
+      { key: 'testSsti',         label: 'Template Injection', sub: 'SSTI' },
+      { key: 'testXxe',          label: 'XXE',                sub: 'XML Entity' },
     ],
   },
   {
     label: 'Client-Side',
+    icon: '🌐',
     accent: '#fb923c',
     tests: [
-      { key: 'testXss',          label: 'XSS Reflection',   sub: 'Reflected' },
+      { key: 'testXss',          label: 'XSS Reflection',    sub: 'Reflected' },
       { key: 'testOpenRedirect', label: 'Open Redirect',     sub: 'URL Parameter' },
-      { key: 'testCorsAbuse',    label: 'CORS Abuse',        sub: 'Origin Reflection' },
+      { key: 'testCorsAbuse',    label: 'CORS',              sub: 'Origin Reflection' },
+      { key: 'testCorsNullOrigin',label: 'CORS',             sub: 'Null Origin' },
       { key: 'testCrlf',         label: 'CRLF Injection',    sub: 'Header Splitting' },
+      { key: 'testJsonp',        label: 'JSONP',             sub: 'Callback Detection' },
     ],
   },
   {
     label: 'Infrastructure',
+    icon: '🏗',
     accent: '#fbbf24',
     tests: [
-      { key: 'testSsrf',         label: 'SSRF',              sub: 'Internal Network' },
-      { key: 'testHostHeader',   label: 'Host Header',       sub: 'Injection' },
-      { key: 'testVerbTampering',label: 'Verb Tampering',    sub: 'TRACE / DELETE' },
+      { key: 'testSsrf',          label: 'SSRF',             sub: 'Internal Network' },
+      { key: 'testHostHeader',    label: 'Host Header',      sub: 'Injection' },
+      { key: 'testVerbTampering', label: 'Verb Tampering',   sub: 'TRACE / DELETE' },
+      { key: 'testApiVersionEnum',label: 'API Versions',     sub: 'Enumeration' },
+    ],
+  },
+  {
+    label: 'Auth & Access',
+    icon: '🔐',
+    accent: '#a78bfa',
+    tests: [
+      { key: 'testJwtAnalysis',      label: 'JWT Analysis',       sub: 'alg:none / Expired' },
+      { key: 'testForbiddenBypass',  label: '403/401 Bypass',     sub: 'Path & Header Tricks' },
+      { key: 'testRateLimitBypass',  label: 'Rate Limit Bypass',  sub: 'IP Header Spoofing' },
+      { key: 'testMassAssignment',   label: 'Mass Assignment',    sub: 'Privileged Fields' },
+      { key: 'testContentTypeSwitch',label: 'Content-Type Switch',sub: 'Parser Confusion' },
     ],
   },
   {
     label: 'Business Logic',
-    accent: '#a78bfa',
+    icon: '⚙',
+    accent: '#34d399',
     tests: [
-      { key: 'testIdor',              label: 'IDOR',           sub: 'ID Enumeration' },
-      { key: 'testHpp',               label: 'Param Pollution',sub: 'Duplicate Params' },
-      { key: 'testGraphqlIntrospect', label: 'GraphQL',        sub: 'Introspection' },
+      { key: 'testIdor',              label: 'IDOR',            sub: 'ID Enumeration' },
+      { key: 'testHpp',               label: 'Param Pollution', sub: 'Duplicate Params' },
+      { key: 'testGraphqlIntrospect', label: 'GraphQL',         sub: 'Introspection' },
     ],
   },
 ];
@@ -109,7 +128,8 @@ export default function ScannerPanel({
   const [showEnhanced,    setShowEnhanced]    = useState(false);
   const [showRecon,       setShowRecon]       = useState(false);
   const [activeGroupsOpen, setActiveGroupsOpen] = useState({
-    Injection: true, 'Client-Side': true, Infrastructure: true, 'Business Logic': true,
+    Injection: false, 'Client-Side': false, Infrastructure: false,
+    'Auth & Access': false, 'Business Logic': false,
   });
 
   const setOpt = (key, val) => setOptions((p) => ({ ...p, [key]: val }));
@@ -337,6 +357,7 @@ export default function ScannerPanel({
                   }
                 >
                   <span className={`group-arrow ${isOpen ? 'open' : ''}`}>›</span>
+                  <span className="group-icon">{group.icon}</span>
                   <span className="group-label-text">{group.label}</span>
                   <span className="group-count">{groupCount}/{group.tests.length}</span>
                 </button>

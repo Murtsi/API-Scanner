@@ -30,6 +30,14 @@ import {
   testXxe,
   testIdorEnumeration,
   testParameterPollution,
+  testJwtAnalysis,
+  testForbiddenBypass,
+  testApiVersionEnum,
+  testRateLimitBypass,
+  testMassAssignment,
+  testCorsNullOrigin,
+  testJsonp,
+  testContentTypeSwitch,
 } from '../utils/vulnScanner.js';
 import {
   analyzeDomSinks,
@@ -285,7 +293,10 @@ export function useScanner() {
         (options.testPathTraversal || options.testTraversal) || options.testCmdi || options.testSsti || options.testXxe ||
         options.testOpenRedirect || options.testCorsAbuse || options.testCrlf ||
         options.testSsrf || options.testHostHeader || options.testVerbTampering ||
-        options.testIdor || options.testHpp || options.testGraphqlIntrospect;
+        options.testIdor || options.testHpp || options.testGraphqlIntrospect ||
+        options.testJwtAnalysis || options.testForbiddenBypass || options.testApiVersionEnum ||
+        options.testRateLimitBypass || options.testMassAssignment || options.testCorsNullOrigin ||
+        options.testJsonp || options.testContentTypeSwitch;
 
       let allEndpoints = [];
       if (needsActive) {
@@ -422,6 +433,63 @@ export function useScanner() {
         const r = await testGraphqlIntrospection(url, SCAN_CONFIG.FETCH_TIMEOUT_MS);
         for (const f of r) findingsMap.set(f.id, f);
         if (r.length > 0) addLog(`  ⚠ ${r.length} GraphQL finding(s)`, 'warn');
+      }
+
+      // Auth & access control
+      if (options.testJwtAnalysis) {
+        addLog(`  → JWT algorithm analysis`, 'info');
+        const r = await testJwtAnalysis(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
+        for (const f of r) findingsMap.set(f.id, f);
+        if (r.length > 0) addLog(`  ⚠ ${r.length} JWT finding(s)`, 'warn');
+      }
+
+      if (options.testForbiddenBypass) {
+        addLog(`  → 403/401 bypass techniques`, 'info');
+        const r = await testForbiddenBypass(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
+        for (const f of r) findingsMap.set(f.id, f);
+        if (r.length > 0) addLog(`  ⚠ ${r.length} bypass finding(s)`, 'warn');
+      }
+
+      if (options.testApiVersionEnum) {
+        addLog(`  → API version enumeration`, 'info');
+        const r = await testApiVersionEnum(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
+        for (const f of r) findingsMap.set(f.id, f);
+        if (r.length > 0) addLog(`  ⚠ ${r.length} API version finding(s)`, 'warn');
+      }
+
+      if (options.testRateLimitBypass) {
+        addLog(`  → Rate limit bypass (IP header spoofing)`, 'info');
+        const r = await testRateLimitBypass(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
+        for (const f of r) findingsMap.set(f.id, f);
+        if (r.length > 0) addLog(`  ⚠ ${r.length} rate limit finding(s)`, 'warn');
+      }
+
+      if (options.testMassAssignment) {
+        addLog(`  → Mass assignment testing`, 'info');
+        const r = await testMassAssignment(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
+        for (const f of r) findingsMap.set(f.id, f);
+        if (r.length > 0) addLog(`  ⚠ ${r.length} mass assignment finding(s)`, 'warn');
+      }
+
+      if (options.testCorsNullOrigin) {
+        addLog(`  → CORS null origin test`, 'info');
+        const r = await testCorsNullOrigin(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
+        for (const f of r) findingsMap.set(f.id, f);
+        if (r.length > 0) addLog(`  ⚠ ${r.length} CORS null origin finding(s)`, 'warn');
+      }
+
+      if (options.testJsonp) {
+        addLog(`  → JSONP endpoint detection`, 'info');
+        const r = await testJsonp(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
+        for (const f of r) findingsMap.set(f.id, f);
+        if (r.length > 0) addLog(`  ⚠ ${r.length} JSONP finding(s)`, 'warn');
+      }
+
+      if (options.testContentTypeSwitch) {
+        addLog(`  → Content-Type switching`, 'info');
+        const r = await testContentTypeSwitch(allEndpoints, SCAN_CONFIG.FETCH_TIMEOUT_MS);
+        for (const f of r) findingsMap.set(f.id, f);
+        if (r.length > 0) addLog(`  ⚠ ${r.length} content-type finding(s)`, 'warn');
       }
 
       // Sort findings by severity

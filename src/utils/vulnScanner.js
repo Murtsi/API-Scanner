@@ -1321,6 +1321,546 @@ export async function testParameterPollution(endpoints, timeoutMs = 8000) {
   return results;
 }
 
+// ── JWT Algorithm Analysis ─────────────────────────────────────────────────────
+
+/**
+ * Test endpoints for JWT security vulnerabilities:
+ *   - Algorithm None: send JWT with alg:none and no signature
+ *   - Expired token acceptance
+ */
+export async function testJwtAnalysis(endpoints, timeoutMs = 8000) {
+  const results = [];
+  const done = new Set();
+
+  // {"alg":"none","typ":"JWT"}.{"sub":"1","role":"admin","exp":9999999999}.
+  const JWT_NONE_TOKEN =
+    'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0' +
+    '.eyJzdWIiOiIxIiwicm9sZSI6ImFkbWluIiwiZXhwIjo5OTk5OTk5OTk5fQ.';
+
+  // {"alg":"HS256"}.{"sub":"1","exp":1}.INVALID_SIG
+  const JWT_EXPIRED_TOKEN =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9' +
+    '.eyJzdWIiOiIxIiwiZXhwIjoxfQ' +
+    '.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+
+  for (const endpoint of endpoints.slice(0, 8)) {
+    let basePath;
+    try { basePath = new URL(endpoint).pathname; } catch { continue; }
+    if (done.has(basePath)) continue;
+
+    try {
+      const { ok, status, body } = await tryFetch(endpoint, timeoutMs, {
+        headers: { Authorization: `Bearer ${JWT_NONE_TOKEN}` },
+      });
+      if (ok && status === 200 && body.length > 50 &&
+          !body.toLowerCase().includes('invalid') &&
+          !body.toLowerCase().includes('unauthorized') &&
+          !body.toLowerCase().includes('signature')) {
+        done.add(basePath);
+        results.push({
+          id: `jwt-none-${results.length}`,
+          name: 'JWT Algorithm None Attack',
+          category: 'Auth',
+          severity: 'critical',
+          technique: 'jwt-alg-none',
+          targeting: 'JWT algorithm confusion — sent a token with alg:none and no signature; a 200 response means the server accepts unsigned tokens and authentication can be completely bypassed',
+          description: `Endpoint "${basePath}" returned HTTP 200 for a JWT with alg:none (no signature). Authentication can be bypassed with any crafted payload.`,
+          guidance: 'Explicitly allowlist accepted JWT algorithms (reject "none"). Enforce the expected algorithm server-side, never trust the alg field from the incoming token header.',
+          matches: [endpoint],
+          sources: [endpoint],
+          type: 'vuln',
+        });
+      }
+    } catch { /* ignore */ }
+
+    if (done.has(basePath)) continue;
+
+    try {
+      const { ok, status, body } = await tryFetch(endpoint, timeoutMs, {
+        headers: { Authorization: `Bearer ${JWT_EXPIRED_TOKEN}` },
+      });
+      if (ok && status === 200 && body.length > 50 &&
+          !body.toLowerCase().includes('expired') &&
+          !body.toLowerCase().includes('invalid')) {
+        done.add(basePath);
+        results.push({
+          id: `jwt-expired-${results.length}`,
+          name: 'JWT Expired Token Accepted',
+          category: 'Auth',
+          severity: 'high',
+          technique: 'jwt-expired-token',
+          targeting: 'JWT expiry validation — sent a token with exp:1 (expired 1970-01-01) to verify the server validates the exp claim on every request',
+          description: `Endpoint "${basePath}" returned HTTP 200 with a long-expired JWT. Stolen tokens can be reused indefinitely.`,
+          guidance: 'Always validate the exp claim. Use short-lived access tokens (15 min). Implement token revocation for critical operations.',
+          matches: [endpoint],
+          sources: [endpoint],
+          type: 'vuln',
+        });
+      }
+    } catch { /* ignore */ }
+  }
+  return results;
+}
+
+// ── 403 / 401 Bypass Techniques ───────────────────────────────────────────────
+
+/**
+ * Test for 403/401 bypass using path encoding tricks and header overrides.
+ */
+export async function testForbiddenBypass(endpoints, timeoutMs = 8000) {
+  const results = [];
+  const done = new Set();
+
+  for (const endpoint of endpoints.slice(0, 10)) {
+    let parsedUrl, basePath;
+    try {
+      parsedUrl = new URL(endpoint);
+      basePath = parsedUrl.pathname;
+    } catch { continue; }
+    if (done.has(basePath) || basePath === '/') continue;
+
+    const baseline = await tryFetch(endpoint, timeoutMs);
+    if (!baseline.ok || (baseline.status !== 403 && baseline.status !== 401)) continue;
+
+    const baseStatus = baseline.status;
+    const origin = parsedUrl.origin;
+
+    const pathVariants = [
+      basePath + '/',
+      basePath + '/.',
+      basePath + '%20',
+      basePath + '..;/',
+      '/' + basePath.slice(1).split('/').join('//'),
+      basePath.replace(/([^/]+)$/, '%2e/$1'),
+    ];
+
+    const headerVariants = [
+      { 'X-Original-URL': basePath },
+      { 'X-Rewrite-URL': basePath },
+      { 'X-Custom-IP-Authorization': '127.0.0.1' },
+      { 'X-Forwarded-For': '127.0.0.1' },
+      { 'X-Real-IP': '127.0.0.1' },
+    ];
+
+    let bypassed = false;
+
+    for (const variant of pathVariants) {
+      if (bypassed) break;
+      try {
+        const { ok, status, body } = await tryFetch(origin + variant + parsedUrl.search, timeoutMs);
+        if (ok && status === 200 && body.length > 20) {
+          done.add(basePath);
+          bypassed = true;
+          results.push({
+            id: `forbidden-path-${results.length}`,
+            name: '403/401 Path Bypass',
+            category: 'Auth',
+            severity: 'high',
+            technique: 'forbidden-bypass-path',
+            targeting: `Path encoding bypass — tested URL encoding tricks, trailing chars (/. %20 ..;/), double-slash paths on ${basePath}`,
+            description: `Path variant "${variant}" returned HTTP ${status}, bypassing the ${baseStatus} restriction. ACL rules match exact path strings but not URL-decoded variants.`,
+            guidance: 'Normalise and decode paths before ACL checks. Use route guards at the framework level, not path-string matching.',
+            matches: [origin + variant],
+            sources: [endpoint],
+            type: 'vuln',
+          });
+        }
+      } catch { /* ignore */ }
+    }
+
+    for (const hdrs of headerVariants) {
+      if (bypassed) break;
+      try {
+        const { ok, status, body } = await tryFetch(origin + '/', timeoutMs, { headers: hdrs });
+        if (ok && status === 200 && body.length > 100) {
+          done.add(basePath);
+          bypassed = true;
+          const headerName = Object.keys(hdrs)[0];
+          results.push({
+            id: `forbidden-hdr-${results.length}`,
+            name: '403/401 Header Bypass',
+            category: 'Auth',
+            severity: 'high',
+            technique: 'forbidden-bypass-header',
+            targeting: 'HTTP header override — tested X-Original-URL, X-Rewrite-URL, and IP-spoofing headers (X-Forwarded-For, X-Real-IP: 127.0.0.1)',
+            description: `Header "${headerName}: ${hdrs[headerName]}" bypassed the ${baseStatus} restriction. Proxy trusts this header without validation from a verified upstream.`,
+            guidance: 'Strip X-Original-URL and IP-spoofing headers at the edge. Only trust forwarding headers from known, verified proxy IPs.',
+            matches: [`${headerName}: ${hdrs[headerName]} → HTTP ${status}`],
+            sources: [endpoint],
+            type: 'vuln',
+          });
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  return results;
+}
+
+// ── API Version Enumeration ────────────────────────────────────────────────────
+
+/**
+ * Enumerate active API versions — older versions often lack current security controls.
+ */
+export async function testApiVersionEnum(endpoints, timeoutMs = 8000) {
+  const results = [];
+  const done = new Set();
+
+  const VERSION_PATHS = [
+    '/v1', '/v2', '/v3', '/v4',
+    '/api', '/api/v1', '/api/v2', '/api/v3',
+    '/api/1', '/api/2',
+    '/rest', '/rest/v1', '/rest/v2',
+    '/_api/v1', '/public/v1', '/public/v2',
+  ];
+
+  for (const endpoint of endpoints.slice(0, 5)) {
+    let parsedUrl;
+    try { parsedUrl = new URL(endpoint); } catch { continue; }
+    const origin = parsedUrl.origin;
+    if (done.has(origin)) continue;
+
+    const found = [];
+    for (const vpath of VERSION_PATHS) {
+      try {
+        const { ok, status } = await tryFetch(origin + vpath, timeoutMs);
+        if (ok && status < 404) found.push({ path: vpath, status });
+      } catch { /* ignore */ }
+    }
+
+    if (found.length >= 2) {
+      done.add(origin);
+      results.push({
+        id: `api-version-${results.length}`,
+        name: 'Multiple API Versions Exposed',
+        category: 'Reconnaissance',
+        severity: 'medium',
+        technique: 'api-version-enum',
+        targeting: `API version enumeration — probed ${VERSION_PATHS.length} versioned paths (v1–v4, /api/v1–v3, /rest) to discover active API versions; legacy versions frequently lack rate limiting, auth, or input validation`,
+        description: `Found ${found.length} active API version paths: ${found.map(f => `${f.path} (HTTP ${f.status})`).join(', ')}. Older versions may expose deprecated endpoints without current security controls.`,
+        guidance: 'Decommission unused API versions. Apply identical security controls across all versions via an API gateway.',
+        matches: found.map(f => origin + f.path),
+        sources: [endpoint],
+        type: 'vuln',
+      });
+    }
+  }
+  return results;
+}
+
+// ── Rate Limit Bypass Detection ────────────────────────────────────────────────
+
+/**
+ * Test if rate limiting can be bypassed via IP-spoofing headers.
+ */
+export async function testRateLimitBypass(endpoints, timeoutMs = 8000) {
+  const results = [];
+  const done = new Set();
+
+  const RATE_PATHS = ['/login', '/signin', '/auth', '/api/login', '/api/auth', '/token'];
+  const SPOOF_HEADERS = ['X-Forwarded-For', 'X-Real-IP', 'X-Client-IP', 'True-Client-IP', 'CF-Connecting-IP'];
+
+  for (const endpoint of endpoints.slice(0, 5)) {
+    let parsedUrl;
+    try { parsedUrl = new URL(endpoint); } catch { continue; }
+    const origin = parsedUrl.origin;
+    if (done.has(origin)) continue;
+
+    let targetPath = null;
+    for (const path of RATE_PATHS) {
+      try {
+        const { ok, status } = await tryFetch(origin + path, timeoutMs);
+        if (ok && status < 500) { targetPath = path; break; }
+      } catch { /* ignore */ }
+    }
+    if (!targetPath) continue;
+
+    const responses = [];
+    for (let i = 0; i < 5; i++) {
+      try {
+        const spoofIp = `10.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${i + 1}`;
+        const headerName = SPOOF_HEADERS[i % SPOOF_HEADERS.length];
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        const res = await fetch(origin + targetPath, {
+          method: 'POST',
+          signal: controller.signal,
+          mode: 'cors',
+          credentials: 'omit',
+          headers: { 'Content-Type': 'application/json', [headerName]: spoofIp },
+          body: JSON.stringify({ username: 'test', password: 'test' }),
+        });
+        clearTimeout(timer);
+        responses.push({ status: res.status, header: headerName, ip: spoofIp });
+      } catch { /* ignore */ }
+    }
+
+    const non429 = responses.filter(r => r.status !== 429 && r.status < 500);
+    if (responses.length >= 4 && non429.length >= 3) {
+      done.add(origin);
+      results.push({
+        id: `ratelimit-${results.length}`,
+        name: 'Potential Rate Limit Bypass (IP Header Spoofing)',
+        category: 'Auth',
+        severity: 'medium',
+        technique: 'rate-limit-bypass',
+        targeting: `Rate limit bypass — sent ${responses.length} rapid POST requests to "${targetPath}" with rotating values in ${SPOOF_HEADERS.join(', ')} headers`,
+        description: `${non429.length}/${responses.length} requests to "${targetPath}" with spoofed IP headers returned non-429. If rate limiting uses these headers, rotating arbitrary IP values bypasses it.`,
+        guidance: 'Rate-limit based on real TCP client IP, not client-supplied headers. Only trust forwarding headers from verified proxy IPs.',
+        matches: responses.slice(0, 3).map(r => `${r.header}: ${r.ip} → HTTP ${r.status}`),
+        sources: [endpoint],
+        type: 'vuln',
+      });
+    }
+  }
+  return results;
+}
+
+// ── Mass Assignment Testing ────────────────────────────────────────────────────
+
+/**
+ * Test for mass assignment by submitting extra privileged fields in POST bodies.
+ */
+export async function testMassAssignment(endpoints, timeoutMs = 8000) {
+  const results = [];
+  const done = new Set();
+
+  const MASS_PATHS = [
+    '/register', '/signup', '/user', '/profile',
+    '/api/users', '/api/register', '/api/signup',
+    '/api/v1/users', '/api/v2/users',
+  ];
+
+  const EXTRA_FIELDS = {
+    isAdmin: true, is_admin: true, admin: true,
+    role: 'admin', roles: ['admin'],
+    verified: true, plan: 'enterprise', credits: 99999,
+  };
+
+  for (const endpoint of endpoints.slice(0, 5)) {
+    let parsedUrl;
+    try { parsedUrl = new URL(endpoint); } catch { continue; }
+    const origin = parsedUrl.origin;
+    if (done.has(origin)) continue;
+
+    for (const path of MASS_PATHS) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        const res = await fetch(origin + path, {
+          method: 'POST',
+          signal: controller.signal,
+          mode: 'cors',
+          credentials: 'omit',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: `probe_${Date.now()}`,
+            email: `probe_${Date.now()}@example.com`,
+            password: 'TestPass123!',
+            ...EXTRA_FIELDS,
+          }),
+        });
+        clearTimeout(timer);
+        const body = await res.text().catch(() => '');
+
+        if ((res.status === 200 || res.status === 201) && body.length > 20) {
+          const reflected = Object.keys(EXTRA_FIELDS).some(f => body.includes(f));
+          if (reflected) {
+            done.add(origin);
+            results.push({
+              id: `mass-assign-${results.length}`,
+              name: 'Potential Mass Assignment Vulnerability',
+              category: 'Auth',
+              severity: 'high',
+              technique: 'mass-assignment',
+              targeting: `Mass assignment — POSTed to "${path}" with extra privileged fields (isAdmin, role:admin, plan:enterprise) to test if the ORM blindly maps all request body properties`,
+              description: `POST to "${path}" (HTTP ${res.status}) reflected privilege-related field names. The API may bind unexpected JSON fields to internal model properties, enabling privilege escalation.`,
+              guidance: 'Use DTO allowlists — explicitly define which fields users may set. Never auto-map all request body fields to model properties.',
+              matches: [`POST ${origin + path} → HTTP ${res.status}`],
+              sources: [endpoint],
+              type: 'vuln',
+            });
+            break;
+          }
+        }
+      } catch { /* ignore */ }
+      if (done.has(origin)) break;
+    }
+  }
+  return results;
+}
+
+// ── CORS Null Origin ──────────────────────────────────────────────────────────
+
+/**
+ * Test for CORS accepting the null origin (sent by sandboxed iframes).
+ */
+export async function testCorsNullOrigin(endpoints, timeoutMs = 8000) {
+  const results = [];
+  const done = new Set();
+
+  for (const endpoint of endpoints.slice(0, 10)) {
+    let basePath;
+    try { basePath = new URL(endpoint).pathname; } catch { continue; }
+    if (done.has(basePath)) continue;
+
+    try {
+      const { ok, headers } = await tryFetch(endpoint, timeoutMs, {
+        headers: { Origin: 'null' },
+      });
+      if (!ok || !headers) continue;
+
+      const acao = headers.get('Access-Control-Allow-Origin') || '';
+      const acac = headers.get('Access-Control-Allow-Credentials') || '';
+
+      if (acao === 'null') {
+        done.add(basePath);
+        const withCreds = acac.toLowerCase() === 'true';
+        results.push({
+          id: `cors-null-${results.length}`,
+          name: 'CORS: Null Origin Accepted',
+          category: 'Client-Side',
+          severity: withCreds ? 'high' : 'medium',
+          technique: 'cors-null-origin',
+          targeting: 'CORS null origin bypass — sent Origin: null to test if the server reflects it; sandboxed iframes send null origin and can steal cross-origin data via this misconfiguration',
+          description: `"Access-Control-Allow-Origin: null"${withCreds ? ' + "Access-Control-Allow-Credentials: true"' : ''} returned. Sandboxed iframes can read data from this endpoint cross-origin${withCreds ? ', including auth cookies' : ''}.`,
+          guidance: 'Validate Origin against an explicit allowlist. Reject the null origin in production. Never combine null/wildcard origin with Allow-Credentials: true.',
+          matches: [`Origin: null → ACAO: ${acao}${withCreds ? ', ACAC: true' : ''}`],
+          sources: [endpoint],
+          type: 'vuln',
+        });
+      }
+    } catch { /* ignore */ }
+  }
+  return results;
+}
+
+// ── JSONP Endpoint Detection ──────────────────────────────────────────────────
+
+/**
+ * Detect legacy JSONP endpoints that wrap responses in a JS function call,
+ * bypassing the Same-Origin Policy.
+ */
+export async function testJsonp(endpoints, timeoutMs = 8000) {
+  const results = [];
+  const done = new Set();
+
+  const CALLBACK_PARAMS = ['callback', 'cb', 'jsonp', 'jsonpcallback', 'call', 'fn'];
+  const MARKER = 'apiscanner_jsonp_x7z';
+
+  for (const endpoint of endpoints.slice(0, 10)) {
+    let basePath;
+    try { basePath = new URL(endpoint).pathname; } catch { continue; }
+    if (done.has(basePath)) continue;
+
+    for (const param of CALLBACK_PARAMS) {
+      try {
+        const testUrl = injectParam(endpoint, param, MARKER);
+        const { ok, body, status } = await tryFetch(testUrl, timeoutMs);
+        if (!ok || !body) continue;
+
+        const trimmed = body.trimStart();
+        if (trimmed.startsWith(MARKER + '(') ||
+            trimmed.startsWith(MARKER + ' (') ||
+            body.includes(`${MARKER}({`) ||
+            body.includes(`${MARKER}([`)) {
+          done.add(basePath);
+          results.push({
+            id: `jsonp-${results.length}`,
+            name: 'JSONP Endpoint Detected',
+            category: 'Client-Side',
+            severity: 'medium',
+            technique: 'jsonp',
+            targeting: `JSONP callback injection — appended ?${param}=${MARKER} to verify if the response wraps data in a JS function call; JSONP bypasses SOP via <script> tags`,
+            description: `"${basePath}" returned JSONP: "${body.slice(0, 100)}…". Any cross-origin page can steal this data using <script src="...?callback=steal">.`,
+            guidance: 'Replace JSONP with CORS. If JSONP must remain, restrict callback to alphanumeric-only and return only non-sensitive data. Add a Content-Security-Policy.',
+            matches: [`?${param}=${MARKER} → JSONP (HTTP ${status})`],
+            sources: [endpoint],
+            type: 'vuln',
+          });
+          break;
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  return results;
+}
+
+// ── Content-Type Switching ─────────────────────────────────────────────────────
+
+/**
+ * Test for content-type confusion — switching to form-encoded or XML may bypass
+ * WAF rules or trigger different parser behaviour.
+ */
+export async function testContentTypeSwitch(endpoints, timeoutMs = 8000) {
+  const results = [];
+  const done = new Set();
+
+  for (const endpoint of endpoints.slice(0, 8)) {
+    let basePath;
+    try { basePath = new URL(endpoint).pathname; } catch { continue; }
+    if (done.has(basePath)) continue;
+
+    let jsonStatus = null;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        signal: controller.signal,
+        mode: 'cors',
+        credentials: 'omit',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ test: 'value' }),
+      });
+      clearTimeout(timer);
+      jsonStatus = res.status;
+    } catch { continue; }
+
+    if (jsonStatus === null || jsonStatus >= 500) continue;
+
+    const altTypes = [
+      { type: 'application/x-www-form-urlencoded', body: 'test=value' },
+      { type: 'text/plain', body: '{"test":"value"}' },
+      { type: 'application/xml', body: '<root><test>value</test></root>' },
+    ];
+
+    for (const { type, body } of altTypes) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          signal: controller.signal,
+          mode: 'cors',
+          credentials: 'omit',
+          headers: { 'Content-Type': type },
+          body,
+        });
+        clearTimeout(timer);
+
+        if (jsonStatus >= 400 && res.status < 400) {
+          done.add(basePath);
+          results.push({
+            id: `ct-switch-${results.length}`,
+            name: 'Content-Type Switch Anomaly',
+            category: 'Auth',
+            severity: 'low',
+            technique: 'content-type-switch',
+            targeting: `Content-Type switching — POSTed to "${basePath}" with alternate types (form-encoded, text/plain, XML) to detect inconsistent parser handling that bypasses validation or WAF rules`,
+            description: `Switching to "${type}" changed the response from HTTP ${jsonStatus} to HTTP ${res.status}. Different parsers may bypass input validation, enabling WAF bypass or prototype pollution.`,
+            guidance: 'Validate Content-Type server-side. Reject unexpected types. Apply schema validation regardless of content type.',
+            matches: [`Content-Type: ${type} → HTTP ${res.status} (JSON baseline: ${jsonStatus})`],
+            sources: [endpoint],
+            type: 'vuln',
+          });
+          break;
+        }
+      } catch { /* ignore */ }
+    }
+  }
+  return results;
+}
+
 export async function testPathTraversalEndpoints(endpoints, timeoutMs = 8000) {
   const results = [];
   const done = new Set();

@@ -38,7 +38,7 @@ export default function Header() {
         </div>
         <div className="hstat-divider" />
         <div className="hstat">
-          <span className="hstat-val">18</span>
+          <span className="hstat-val">26</span>
           <span className="hstat-lbl">Attack Methods</span>
         </div>
         <div className="hstat-divider" />

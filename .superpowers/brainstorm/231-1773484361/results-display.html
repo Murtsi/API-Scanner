@@ -1,0 +1,103 @@
+<h2>Findings Display — How should vulnerabilities be shown?</h2>
+<p class="subtitle">You want it informative for non-technical users. Here are two approaches to displaying scan results.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="explained-cards" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0000;padding:14px;border-radius:6px;font-family:monospace;">
+
+      <!-- Finding 1 - Critical -->
+      <div style="background:#0e0000;border:1px solid rgba(255,0,0,0.35);border-left:3px solid #FF0000;border-radius:5px;padding:10px;margin-bottom:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <div>
+            <span style="background:rgba(255,0,0,0.15);color:#FF0000;font-size:7px;padding:2px 7px;border-radius:10px;font-weight:bold;letter-spacing:1px;">CRITICAL</span>
+            <div style="color:#f0d0d0;font-size:10px;font-weight:bold;margin-top:3px;">AWS Secret Key Exposed</div>
+          </div>
+          <span style="color:#3d1a1a;font-size:8px;">secrets</span>
+        </div>
+        <div style="background:#130000;border-radius:3px;padding:5px;margin-bottom:6px;">
+          <div style="color:#8a5050;font-size:7px;letter-spacing:1px;margin-bottom:2px;">WHAT THIS MEANS</div>
+          <div style="color:#f0d0d0;font-size:8px;line-height:1.5;">An AWS access key was found in a public JavaScript file. Anyone who finds this can access your Amazon cloud account — read databases, send emails, delete files.</div>
+        </div>
+        <div style="background:#130000;border-radius:3px;padding:5px;">
+          <div style="color:#8a5050;font-size:7px;letter-spacing:1px;margin-bottom:2px;">HOW TO FIX</div>
+          <div style="color:#8a5050;font-size:8px;line-height:1.5;">1. Revoke this key in AWS console immediately<br>2. Move secrets to environment variables<br>3. Never commit keys to source code</div>
+        </div>
+      </div>
+
+      <!-- Finding 2 - Medium -->
+      <div style="background:#0e0000;border:1px solid rgba(255,170,0,0.25);border-left:3px solid #ffaa00;border-radius:5px;padding:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div>
+            <span style="background:rgba(255,170,0,0.12);color:#ffaa00;font-size:7px;padding:2px 7px;border-radius:10px;font-weight:bold;letter-spacing:1px;">MEDIUM</span>
+            <div style="color:#f0d0d0;font-size:10px;font-weight:bold;margin-top:3px;">Missing Security Headers</div>
+          </div>
+        </div>
+        <div style="color:#8a5050;font-size:8px;line-height:1.4;">Your site doesn't set Content-Security-Policy headers. This makes it easier for attackers to inject malicious scripts into your pages. <span style="color:#f0d0d0;">▸ See fix</span></div>
+      </div>
+
+    </div>
+    <div class="card-body">
+      <h3>A — Explained Cards</h3>
+      <p>Each finding has three sections: the name + severity badge, a plain-English "What this means" block, and a "How to fix" numbered list. Critical findings expanded by default, lower severity collapsed. Perfect for non-technical readers — no jargon.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="dashboard-findings" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0000;padding:14px;border-radius:6px;font-family:monospace;">
+
+      <!-- Summary strip -->
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <div style="flex:1;background:#0e0000;border:1px solid rgba(255,0,0,0.3);border-radius:5px;padding:6px;text-align:center;">
+          <div style="color:#FF0000;font-size:14px;font-weight:bold;line-height:1;">2</div>
+          <div style="color:#3d1a1a;font-size:7px;letter-spacing:1px;">CRITICAL</div>
+        </div>
+        <div style="flex:1;background:#0e0000;border:1px solid rgba(255,85,34,0.25);border-radius:5px;padding:6px;text-align:center;">
+          <div style="color:#ff5522;font-size:14px;font-weight:bold;line-height:1;">5</div>
+          <div style="color:#3d1a1a;font-size:7px;letter-spacing:1px;">HIGH</div>
+        </div>
+        <div style="flex:1;background:#0e0000;border:1px solid rgba(255,170,0,0.2);border-radius:5px;padding:6px;text-align:center;">
+          <div style="color:#ffaa00;font-size:14px;font-weight:bold;line-height:1;">8</div>
+          <div style="color:#3d1a1a;font-size:7px;letter-spacing:1px;">MEDIUM</div>
+        </div>
+        <div style="flex:1;background:#0e0000;border:1px solid rgba(255,102,136,0.2);border-radius:5px;padding:6px;text-align:center;">
+          <div style="color:#ff6688;font-size:14px;font-weight:bold;line-height:1;">3</div>
+          <div style="color:#3d1a1a;font-size:7px;letter-spacing:1px;">LOW</div>
+        </div>
+      </div>
+
+      <!-- Filter tabs -->
+      <div style="display:flex;gap:4px;margin-bottom:7px;">
+        <div style="background:rgba(255,0,0,0.15);border:1px solid rgba(255,0,0,0.4);color:#FF0000;font-size:7px;padding:2px 8px;border-radius:12px;">All</div>
+        <div style="background:transparent;border:1px solid rgba(255,96,96,0.15);color:#3d1a1a;font-size:7px;padding:2px 8px;border-radius:12px;">Secrets</div>
+        <div style="background:transparent;border:1px solid rgba(255,96,96,0.15);color:#3d1a1a;font-size:7px;padding:2px 8px;border-radius:12px;">Headers</div>
+        <div style="background:transparent;border:1px solid rgba(255,96,96,0.15);color:#3d1a1a;font-size:7px;padding:2px 8px;border-radius:12px;">Injection</div>
+      </div>
+
+      <!-- Finding rows -->
+      <div style="background:#0e0000;border:1px solid rgba(255,0,0,0.2);border-left:2px solid #FF0000;border-radius:4px;padding:6px 8px;margin-bottom:3px;display:flex;align-items:center;gap:8px;">
+        <span style="background:rgba(255,0,0,0.15);color:#FF0000;font-size:6px;padding:1px 5px;border-radius:8px;white-space:nowrap;">CRIT</span>
+        <span style="color:#f0d0d0;font-size:8px;flex:1;">AWS Secret Key Exposed</span>
+        <span style="color:#3d1a1a;font-size:7px;">›</span>
+      </div>
+      <div style="background:#0e0000;border:1px solid rgba(255,85,34,0.2);border-left:2px solid #ff5522;border-radius:4px;padding:6px 8px;margin-bottom:3px;display:flex;align-items:center;gap:8px;">
+        <span style="background:rgba(255,85,34,0.12);color:#ff5522;font-size:6px;padding:1px 5px;border-radius:8px;white-space:nowrap;">HIGH</span>
+        <span style="color:#f0d0d0;font-size:8px;flex:1;">SQL Injection Possible</span>
+        <span style="color:#3d1a1a;font-size:7px;">›</span>
+      </div>
+      <div style="background:#0e0000;border:1px solid rgba(255,170,0,0.15);border-left:2px solid #ffaa00;border-radius:4px;padding:6px 8px;display:flex;align-items:center;gap:8px;">
+        <span style="background:rgba(255,170,0,0.1);color:#ffaa00;font-size:6px;padding:1px 5px;border-radius:8px;white-space:nowrap;">MED</span>
+        <span style="color:#f0d0d0;font-size:8px;flex:1;">Missing Security Headers</span>
+        <span style="color:#3d1a1a;font-size:7px;">›</span>
+      </div>
+
+    </div>
+    <div class="card-body">
+      <h3>B — Dashboard with Severity Summary</h3>
+      <p>Top row shows 4 severity count cards (CRITICAL / HIGH / MEDIUM / LOW) like CyberGuard's layout. Filter tabs below. Findings in a clean list, click to expand with full explanation. Professional at a glance, detail on demand.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;">Both include plain-English explanations inside each finding — the difference is whether the summary strip appears at the top. Let me know what you think.</p>

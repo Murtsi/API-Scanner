@@ -1,0 +1,145 @@
+<h2>Method Selection — How should scan options look?</h2>
+<p class="subtitle">The current design uses nested collapsible checkboxes — cluttered. Here are three cleaner approaches. Which feels best?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="pill-toggle" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0000;padding:14px;border-radius:6px;font-family:monospace;">
+      <div style="color:#8a5050;font-size:8px;letter-spacing:2px;margin-bottom:8px;">SCAN METHODS — SELECT ALL THAT APPLY</div>
+
+      <div style="margin-bottom:10px;">
+        <div style="color:#3d1a1a;font-size:7px;letter-spacing:1px;margin-bottom:5px;text-transform:uppercase;">Passive (safe, no payloads)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          <div style="background:rgba(255,96,96,0.18);border:1px solid rgba(255,96,96,0.45);color:#ff6060;font-size:8px;padding:3px 10px;border-radius:20px;">✓ JS Assets</div>
+          <div style="background:rgba(255,96,96,0.18);border:1px solid rgba(255,96,96,0.45);color:#ff6060;font-size:8px;padding:3px 10px;border-radius:20px;">✓ Exposed Files</div>
+          <div style="background:transparent;border:1px solid rgba(255,96,96,0.2);color:#3d1a1a;font-size:8px;padding:3px 10px;border-radius:20px;">DOM XSS Sinks</div>
+          <div style="background:transparent;border:1px solid rgba(255,96,96,0.2);color:#3d1a1a;font-size:8px;padding:3px 10px;border-radius:20px;">Source Maps</div>
+          <div style="background:rgba(255,96,96,0.18);border:1px solid rgba(255,96,96,0.45);color:#ff6060;font-size:8px;padding:3px 10px;border-radius:20px;">✓ robots.txt</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <div style="color:#3d1a1a;font-size:7px;letter-spacing:1px;margin-bottom:5px;text-transform:uppercase;">Reconnaissance</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          <div style="background:rgba(255,160,64,0.15);border:1px solid rgba(255,160,64,0.4);color:#ffa040;font-size:8px;padding:3px 10px;border-radius:20px;">✓ Tech Fingerprint</div>
+          <div style="background:transparent;border:1px solid rgba(255,160,64,0.2);color:#3d1a1a;font-size:8px;padding:3px 10px;border-radius:20px;">Cloud Storage</div>
+          <div style="background:transparent;border:1px solid rgba(255,160,64,0.2);color:#3d1a1a;font-size:8px;padding:3px 10px;border-radius:20px;">GraphQL</div>
+        </div>
+      </div>
+
+      <div>
+        <div style="color:#3d1a1a;font-size:7px;letter-spacing:1px;margin-bottom:5px;text-transform:uppercase;">⚠ Active Testing (sends real payloads)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          <div style="background:rgba(255,0,0,0.12);border:1px solid rgba(255,0,0,0.3);color:#ff4444;font-size:8px;padding:3px 10px;border-radius:20px;">SQL Injection</div>
+          <div style="background:rgba(255,0,0,0.12);border:1px solid rgba(255,0,0,0.3);color:#ff4444;font-size:8px;padding:3px 10px;border-radius:20px;">XSS</div>
+          <div style="background:transparent;border:1px solid rgba(255,0,0,0.15);color:#3d1a1a;font-size:8px;padding:3px 10px;border-radius:20px;">SSRF</div>
+          <div style="background:transparent;border:1px solid rgba(255,0,0,0.15);color:#3d1a1a;font-size:8px;padding:3px 10px;border-radius:20px;">JWT</div>
+          <div style="background:transparent;border:1px solid rgba(255,0,0,0.15);color:#3d1a1a;font-size:8px;padding:3px 10px;border-radius:20px;">CORS</div>
+          <div style="color:#3d1a1a;font-size:8px;padding:3px 6px;">+21 more...</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Pill Toggles</h3>
+      <p>All methods visible as clickable pills, grouped by section. Selected = colored, unselected = dim. See everything at once. Clean, fast, no nested menus. Beginner-friendly — each pill has a tooltip explaining what it does.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="category-cards" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0000;padding:14px;border-radius:6px;font-family:monospace;">
+      <div style="color:#8a5050;font-size:8px;letter-spacing:2px;margin-bottom:8px;">SCAN CONFIGURATION</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;">
+
+        <div style="background:#0e0000;border:1px solid rgba(255,96,96,0.35);border-radius:5px;padding:8px;cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="color:#ff6060;font-size:9px;font-weight:bold;">PASSIVE</span>
+            <span style="background:rgba(255,96,96,0.2);color:#ff6060;font-size:7px;padding:1px 5px;border-radius:10px;">5/6</span>
+          </div>
+          <div style="color:#3d1a1a;font-size:7px;line-height:1.5;">Safe analysis<br>No requests sent<br>Reads HTML/JS</div>
+          <div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:2px;">
+            <div style="width:6px;height:6px;background:#ff6060;border-radius:50%;opacity:0.9;"></div>
+            <div style="width:6px;height:6px;background:#ff6060;border-radius:50%;opacity:0.9;"></div>
+            <div style="width:6px;height:6px;background:#ff6060;border-radius:50%;opacity:0.9;"></div>
+            <div style="width:6px;height:6px;background:#ff6060;border-radius:50%;opacity:0.9;"></div>
+            <div style="width:6px;height:6px;background:#ff6060;border-radius:50%;opacity:0.9;"></div>
+            <div style="width:6px;height:6px;background:#3d1a1a;border-radius:50%;"></div>
+          </div>
+        </div>
+
+        <div style="background:#0e0000;border:1px solid rgba(255,160,64,0.35);border-radius:5px;padding:8px;cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="color:#ffa040;font-size:9px;font-weight:bold;">RECON</span>
+            <span style="background:rgba(255,160,64,0.18);color:#ffa040;font-size:7px;padding:1px 5px;border-radius:10px;">1/3</span>
+          </div>
+          <div style="color:#3d1a1a;font-size:7px;line-height:1.5;">Intel gathering<br>Tech detection<br>Cloud mapping</div>
+          <div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:2px;">
+            <div style="width:6px;height:6px;background:#ffa040;border-radius:50%;opacity:0.9;"></div>
+            <div style="width:6px;height:6px;background:#3d1a1a;border-radius:50%;"></div>
+            <div style="width:6px;height:6px;background:#3d1a1a;border-radius:50%;"></div>
+          </div>
+        </div>
+
+        <div style="background:#0e0000;border:1px solid rgba(255,0,0,0.25);border-radius:5px;padding:8px;cursor:pointer;opacity:0.6;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="color:#FF0000;font-size:9px;font-weight:bold;">ACTIVE</span>
+            <span style="background:rgba(255,0,0,0.1);color:#FF0000;font-size:7px;padding:1px 5px;border-radius:10px;">0/26</span>
+          </div>
+          <div style="color:#3d1a1a;font-size:7px;line-height:1.5;">Attack payloads<br>Real requests<br>Need permission</div>
+          <div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:2px;">
+            <div style="width:6px;height:6px;background:#3d1a1a;border-radius:50%;"></div>
+            <div style="width:6px;height:6px;background:#3d1a1a;border-radius:50%;"></div>
+            <div style="width:6px;height:6px;background:#3d1a1a;border-radius:50%;"></div>
+          </div>
+        </div>
+      </div>
+      <div style="color:#3d1a1a;font-size:7px;text-align:center;margin-top:6px;">→ Click a card to expand and configure its tests</div>
+    </div>
+    <div class="card-body">
+      <h3>B — Category Cards (expand to configure)</h3>
+      <p>Three cards: Passive / Recon / Active. Each shows a count badge and a plain-English description ("Safe analysis — no requests sent"). Click a card to open its checklist. Hides complexity by default but exposes full control on demand.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="wizard" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0000;padding:14px;border-radius:6px;font-family:monospace;">
+      <div style="color:#8a5050;font-size:8px;letter-spacing:2px;margin-bottom:8px;">WHAT DO YOU WANT TO CHECK?</div>
+
+      <div style="background:#0e0000;border:1px solid rgba(255,0,0,0.2);border-radius:5px;padding:8px;margin-bottom:5px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="color:#f0d0d0;font-size:9px;font-weight:bold;margin-bottom:2px;">🔍 Quick Passive Scan</div>
+            <div style="color:#8a5050;font-size:7px;">Reads HTML &amp; JS — finds secrets, headers, libraries. No requests sent. Safe on any site.</div>
+          </div>
+          <div style="background:rgba(255,96,96,0.2);border:1px solid rgba(255,96,96,0.4);color:#ff6060;font-size:7px;padding:2px 8px;border-radius:10px;white-space:nowrap;">✓ ON</div>
+        </div>
+      </div>
+
+      <div style="background:#0e0000;border:1px solid rgba(255,160,64,0.2);border-radius:5px;padding:8px;margin-bottom:5px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="color:#f0d0d0;font-size:9px;font-weight:bold;margin-bottom:2px;">🗺 Reconnaissance</div>
+            <div style="color:#8a5050;font-size:7px;">Identifies tech stack, cloud buckets, GraphQL. Uses fetched data only. Safe.</div>
+          </div>
+          <div style="background:transparent;border:1px solid rgba(255,160,64,0.2);color:#3d1a1a;font-size:7px;padding:2px 8px;border-radius:10px;white-space:nowrap;">OFF</div>
+        </div>
+      </div>
+
+      <div style="background:#0e0000;border:1px solid rgba(255,0,0,0.15);border-radius:5px;padding:8px;opacity:0.7;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="color:#f0d0d0;font-size:9px;font-weight:bold;margin-bottom:2px;">⚠ Active Attack Testing</div>
+            <div style="color:#8a5050;font-size:7px;">Sends real payloads — SQLi, XSS, SSRF and more. <span style="color:#FF0000;">Only use on sites you own.</span></div>
+          </div>
+          <div style="background:transparent;border:1px solid rgba(255,0,0,0.15);color:#3d1a1a;font-size:7px;padding:2px 8px;border-radius:10px;white-space:nowrap;">OFF</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Plain-English Presets</h3>
+      <p>Each scan mode is a big toggle row with a plain-English description of what it does and who should use it. Beginners see "Reads HTML & JS — finds secrets." Experts can still expand each row to tweak individual tests. Most beginner-friendly of the three.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;">These can be combined — e.g. Category Cards (B) with plain-English descriptions inside each card. Let me know what resonates.</p>

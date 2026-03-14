@@ -412,20 +412,18 @@ function FindingCard({ finding }) {
 
           {detail && showDetail && (
             <div className="detail-box">
-              <div className="detail-section">
-                <span className="detail-label">What this means</span>
-                <p className="detail-text">{detail.what}</p>
+              <div className="explain-block">
+                <div className="explain-lbl">What this means</div>
+                <div className="explain-text">{detail.what}</div>
               </div>
               <div className="detail-section">
                 <span className="detail-label">What an attacker can do</span>
                 <p className="detail-text detail-attack">{detail.attack}</p>
               </div>
-              <div className="detail-section">
-                <span className="detail-label">How to fix it</span>
-                <ol className="detail-steps">
-                  {detail.fix.map((step, i) => (
-                    <li key={i}>{step}</li>
-                  ))}
+              <div className="explain-block">
+                <div className="explain-lbl">How to fix</div>
+                <ol className="fix-ol">
+                  {detail.fix.map((step, i) => <li key={i}>{step}</li>)}
                 </ol>
               </div>
             </div>
@@ -652,6 +650,37 @@ export default function ResultsPanel({ results, isScanning, onExportJson, onExpo
 
   return (
     <div className="results-panel">
+      {/* Severity summary strip */}
+      {results.length > 0 && (() => {
+        const counts = { critical: 0, high: 0, medium: 0, low: 0 };
+        results.forEach((r) => {
+          (r.findings || []).forEach((f) => {
+            const sev = (f.severity || 'low').toLowerCase();
+            if (counts[sev] !== undefined) counts[sev]++;
+          });
+        });
+        return (
+          <div className="sev-strip">
+            <div className="sev-strip-card sc-critical">
+              <span className="strip-num">{counts.critical}</span>
+              <span className="strip-lbl">Critical</span>
+            </div>
+            <div className="sev-strip-card sc-high">
+              <span className="strip-num">{counts.high}</span>
+              <span className="strip-lbl">High</span>
+            </div>
+            <div className="sev-strip-card sc-medium">
+              <span className="strip-num">{counts.medium}</span>
+              <span className="strip-lbl">Medium</span>
+            </div>
+            <div className="sev-strip-card sc-low">
+              <span className="strip-num">{counts.low}</span>
+              <span className="strip-lbl">Low</span>
+            </div>
+          </div>
+        );
+      })()}
+
       {results.length > 0 && (
         <div className="results-toolbar card">
           <div className="toolbar-stats">

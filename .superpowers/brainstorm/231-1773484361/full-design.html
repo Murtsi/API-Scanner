@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Scanner — Full Design Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #1a1a1a; font-family: 'Chakra Petch', monospace, sans-serif; color: #f0d0d0; padding: 24px; font-size: 13px; }
+  h1 { color: #f0d0d0; font-size: 13px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 6px; opacity: 0.5; }
+  .subtitle { color: #666; font-size: 11px; margin-bottom: 20px; }
+
+  /* ── App Shell ── */
+  .app { background: #000; border: 1px solid rgba(149,1,1,0.3); border-radius: 10px; overflow: hidden; max-width: 1100px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .hdr { background: rgba(5,0,0,0.97); border-bottom: 1px solid rgba(149,1,1,0.28); padding: 0 20px; height: 52px; display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-icon { color: #FF0000; font-size: 18px; filter: drop-shadow(0 0 6px rgba(255,0,0,0.5)); }
+  .brand-name { font-size: 13px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
+  .brand-name span { color: #FF0000; }
+  .brand-sub { font-size: 9px; color: #3d1a1a; letter-spacing: 2px; text-transform: uppercase; display: block; margin-top: 1px; }
+  .hdr-stats { display: flex; gap: 0; background: #0c0000; border: 1px solid rgba(149,1,1,0.22); border-radius: 7px; overflow: hidden; }
+  .hstat { padding: 5px 16px; text-align: center; }
+  .hstat + .hstat { border-left: 1px solid rgba(149,1,1,0.22); }
+  .hstat-val { color: #FF0000; font-size: 13px; font-weight: 700; display: block; line-height: 1; }
+  .hstat-lbl { color: #3d1a1a; font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-top: 2px; }
+  .hdr-right { display: flex; gap: 8px; align-items: center; }
+  .pill { background: #0c0000; border: 1px solid rgba(149,1,1,0.22); color: #8a5050; font-size: 10px; padding: 3px 10px; border-radius: 20px; }
+
+  /* ── Top row grid ── */
+  .top-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px; }
+
+  /* ── Card base ── */
+  .card { background: #060000; border: 1px solid rgba(149,1,1,0.22); border-radius: 8px; padding: 14px; }
+  .card-title { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #3d1a1a; margin-bottom: 10px; }
+
+  /* ── Target card ── */
+  .url-box { background: #0c0000; border: 1px solid rgba(149,1,1,0.22); border-radius: 5px; padding: 9px 12px; font-family: monospace; font-size: 11px; color: #8a5050; margin-bottom: 10px; }
+  .url-box span { color: #3d1a1a; }
+  .scan-btn { background: linear-gradient(135deg, #FF0000, #950101); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 9px 20px; border-radius: 5px; border: none; display: inline-block; box-shadow: 0 4px 16px rgba(255,0,0,0.3); }
+  .clear-btn { background: transparent; border: 1px solid rgba(149,1,1,0.22); color: #3d1a1a; font-size: 11px; padding: 9px 16px; border-radius: 5px; }
+  .btn-row { display: flex; gap: 8px; }
+
+  /* ── Methods card ── */
+  .method-row { background: #0c0000; border: 1px solid rgba(149,1,1,0.18); border-radius: 6px; padding: 10px 12px; margin-bottom: 6px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: border-color 0.15s; }
+  .method-row.on { border-color: rgba(255,96,96,0.45); background: #100000; }
+  .method-row.on-amber { border-color: rgba(255,160,64,0.4); background: #100000; }
+  .method-row.off { opacity: 0.6; }
+  .toggle { width: 28px; height: 16px; border-radius: 8px; background: #1a0000; border: 1px solid rgba(149,1,1,0.3); flex-shrink: 0; position: relative; }
+  .toggle.on { background: rgba(255,96,96,0.3); border-color: #ff6060; }
+  .toggle.on::after { content:''; position:absolute; right:2px; top:2px; width:10px; height:10px; border-radius:50%; background:#ff6060; }
+  .toggle.on-amber { background: rgba(255,160,64,0.2); border-color: #ffa040; }
+  .toggle.on-amber::after { content:''; position:absolute; right:2px; top:2px; width:10px; height:10px; border-radius:50%; background:#ffa040; }
+  .toggle::after { content:''; position:absolute; left:2px; top:2px; width:10px; height:10px; border-radius:50%; background:#3d1a1a; }
+  .method-info { flex: 1; }
+  .method-name { font-size: 11px; font-weight: 600; color: #f0d0d0; margin-bottom: 2px; }
+  .method-desc { font-size: 9px; color: #8a5050; line-height: 1.4; }
+  .method-badge { font-size: 8px; padding: 2px 8px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+  .badge-safe { background: rgba(255,96,96,0.12); color: #ff6060; border: 1px solid rgba(255,96,96,0.3); }
+  .badge-caution { background: rgba(255,160,64,0.1); color: #ffa040; border: 1px solid rgba(255,160,64,0.25); }
+  .badge-danger { background: rgba(255,0,0,0.1); color: #FF0000; border: 1px solid rgba(255,0,0,0.25); }
+  .method-expand { color: #3d1a1a; font-size: 10px; flex-shrink: 0; }
+  .warn-banner { background: rgba(255,170,0,0.06); border: 1px solid rgba(255,170,0,0.2); border-radius: 5px; padding: 7px 10px; font-size: 9px; color: #8a6030; line-height: 1.5; margin-top: 4px; }
+
+  /* ── Results strip ── */
+  .results-area { padding: 0 14px 14px; }
+  .sev-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+  .sev-card { background: #060000; border: 1px solid rgba(149,1,1,0.18); border-radius: 7px; padding: 10px; text-align: center; }
+  .sev-num { font-size: 22px; font-weight: 700; line-height: 1; display: block; }
+  .sev-lbl { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-top: 3px; }
+  .sev-crit .sev-num { color: #FF0000; } .sev-crit { border-color: rgba(255,0,0,0.3); }
+  .sev-high .sev-num { color: #ff5522; } .sev-high { border-color: rgba(255,85,34,0.22); }
+  .sev-med .sev-num { color: #ffaa00; } .sev-med { border-color: rgba(255,170,0,0.18); }
+  .sev-low .sev-num { color: #ff6688; } .sev-low { border-color: rgba(255,102,136,0.18); }
+  .sev-lbl { color: #3d1a1a; }
+
+  /* Filter tabs */
+  .filter-row { display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; }
+  .ftab { font-size: 9px; padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(149,1,1,0.22); color: #3d1a1a; background: #0c0000; }
+  .ftab.active { background: rgba(255,0,0,0.1); border-color: rgba(255,0,0,0.4); color: #FF0000; }
+
+  /* Finding rows */
+  .finding { background: #060000; border: 1px solid rgba(149,1,1,0.18); border-radius: 6px; padding: 12px 14px; margin-bottom: 6px; cursor: pointer; }
+  .finding.crit { border-left: 3px solid #FF0000; }
+  .finding.high { border-left: 3px solid #ff5522; }
+  .finding.med { border-left: 3px solid #ffaa00; }
+  .finding-header { display: flex; align-items: center; gap: 10px; }
+  .finding-sev { font-size: 7px; font-weight: 700; letter-spacing: 1px; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
+  .sev-crit-badge { background: rgba(255,0,0,0.12); color: #FF0000; border: 1px solid rgba(255,0,0,0.25); }
+  .sev-high-badge { background: rgba(255,85,34,0.1); color: #ff5522; border: 1px solid rgba(255,85,34,0.22); }
+  .sev-med-badge { background: rgba(255,170,0,0.08); color: #ffaa00; border: 1px solid rgba(255,170,0,0.18); }
+  .finding-name { flex: 1; font-size: 12px; font-weight: 600; color: #f0d0d0; }
+  .finding-cat { font-size: 8px; color: #3d1a1a; text-transform: uppercase; letter-spacing: 1px; }
+  .finding-arrow { color: #3d1a1a; font-size: 11px; }
+
+  /* Expanded finding */
+  .finding-body { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(149,1,1,0.15); display: grid; gap: 8px; }
+  .explain-block { background: #0c0000; border-radius: 4px; padding: 8px 10px; }
+  .explain-lbl { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; color: #3d1a1a; margin-bottom: 4px; }
+  .explain-text { font-size: 10px; color: #8a5050; line-height: 1.6; }
+  .explain-text strong { color: #f0d0d0; }
+  .fix-list { font-size: 10px; color: #8a5050; line-height: 1.7; padding-left: 14px; }
+  .fix-list li { padding-left: 4px; }
+  .fix-list li::marker { color: #FF0000; font-weight: 700; }
+
+  /* Bottom panels */
+  .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 14px 14px; }
+  .bottom-card { background: #060000; border: 1px solid rgba(149,1,1,0.18); border-radius: 8px; overflow: hidden; }
+  .bchead { padding: 10px 14px; border-bottom: 1px solid rgba(149,1,1,0.15); display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .bchead-title { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #8a5050; }
+  .bchead-arrow { color: #3d1a1a; font-size: 10px; }
+  .bc-body { padding: 10px 14px; }
+  .rule-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(149,1,1,0.08); }
+  .rule-name { font-size: 10px; color: #8a5050; }
+  .rule-sev { font-size: 7px; padding: 1px 6px; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<h1>API Scanner — Full Design Preview</h1>
+<p class="subtitle" style="margin-bottom:20px;">Dashboard Grid layout · Plain-English method toggles · Severity summary results. Scroll to see everything. This is the complete page.</p>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="brand">
+      <div class="brand-icon">⬡</div>
+      <div>
+        <div class="brand-name">API <span>SCANNER</span></div>
+        <span class="brand-sub">Security Assessment Tool</span>
+      </div>
+    </div>
+    <div class="hdr-stats">
+      <div class="hstat"><span class="hstat-val">50</span><span class="hstat-lbl">Rules</span></div>
+      <div class="hstat"><span class="hstat-val">26</span><span class="hstat-lbl">Methods</span></div>
+      <div class="hstat"><span class="hstat-val">130+</span><span class="hstat-lbl">Paths</span></div>
+    </div>
+    <div class="hdr-right">
+      <div class="pill">Public Tool — No Login Required</div>
+    </div>
+  </div>
+
+  <!-- TOP ROW: Target + Methods -->
+  <div class="top-row">
+
+    <!-- Target Card -->
+    <div class="card">
+      <div class="card-title">Target</div>
+      <div class="url-box"><span>https://</span>example.com</div>
+      <div style="font-size:9px;color:#3d1a1a;margin-bottom:10px;line-height:1.5;">Enter one URL per line. HTTP/HTTPS only. The scanner fetches each page, linked JavaScript files, and runs selected checks against them.</div>
+      <div class="btn-row">
+        <div class="scan-btn">▶ Start Scan</div>
+        <div class="clear-btn">Clear</div>
+      </div>
+    </div>
+
+    <!-- Methods Card -->
+    <div class="card">
+      <div class="card-title">What to Check</div>
+
+      <div class="method-row on">
+        <div class="toggle on"></div>
+        <div class="method-info">
+          <div class="method-name">🔍 Passive Analysis</div>
+          <div class="method-desc">Reads HTML &amp; JavaScript — finds exposed secrets, insecure headers, vulnerable libraries. <strong style="color:#f0d0d0;">No requests sent.</strong> Safe to run on any site.</div>
+        </div>
+        <div class="method-badge badge-safe">SAFE</div>
+        <div class="method-expand">▸</div>
+      </div>
+
+      <div class="method-row on-amber">
+        <div class="toggle on-amber"></div>
+        <div class="method-info">
+          <div class="method-name">🗺 Reconnaissance</div>
+          <div class="method-desc">Identifies technology stack, cloud storage references, API endpoints. Uses only data already fetched. <strong style="color:#f0d0d0;">No new requests.</strong></div>
+        </div>
+        <div class="method-badge badge-caution">PASSIVE</div>
+        <div class="method-expand">▸</div>
+      </div>
+
+      <div class="method-row off">
+        <div class="toggle"></div>
+        <div class="method-info">
+          <div class="method-name">⚠ Active Attack Testing</div>
+          <div class="method-desc">Sends real attack payloads — SQL injection, XSS, SSRF and 23 more. <strong style="color:#FF0000;">Only use on sites you own or have written permission to test.</strong></div>
+        </div>
+        <div class="method-badge badge-danger">26 TESTS</div>
+        <div class="method-expand">▸</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS AREA -->
+  <div class="results-area">
+
+    <!-- Severity strip -->
+    <div class="sev-strip">
+      <div class="sev-card sev-crit"><span class="sev-num">2</span><span class="sev-lbl">Critical</span></div>
+      <div class="sev-card sev-high"><span class="sev-num">5</span><span class="sev-lbl">High</span></div>
+      <div class="sev-card sev-med"><span class="sev-num">8</span><span class="sev-lbl">Medium</span></div>
+      <div class="sev-card sev-low"><span class="sev-num">3</span><span class="sev-lbl">Low</span></div>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="filter-row">
+      <div class="ftab active">All (18)</div>
+      <div class="ftab">Secrets</div>
+      <div class="ftab">Headers</div>
+      <div class="ftab">Injection</div>
+      <div class="ftab">Libraries</div>
+      <div class="ftab">Recon</div>
+    </div>
+
+    <!-- Finding 1 — Critical, expanded -->
+    <div class="finding crit">
+      <div class="finding-header">
+        <span class="finding-sev sev-crit-badge">CRITICAL</span>
+        <span class="finding-name">AWS Secret Key Exposed</span>
+        <span class="finding-cat">secrets</span>
+        <span class="finding-arrow">▾</span>
+      </div>
+      <div class="finding-body">
+        <div class="explain-block">
+          <div class="explain-lbl">What this means</div>
+          <div class="explain-text">An <strong>AWS access key</strong> was found in a public JavaScript file. Anyone who finds this key can access your Amazon cloud account — they could read your databases, send emails on your behalf, or delete files.</div>
+        </div>
+        <div class="explain-block">
+          <div class="explain-lbl">How to fix</div>
+          <ol class="fix-list">
+            <li>Go to AWS Console → IAM → revoke this key immediately</li>
+            <li>Move secrets to environment variables or a secrets manager</li>
+            <li>Never commit API keys to source code or JavaScript files</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- Finding 2 — High, collapsed -->
+    <div class="finding high">
+      <div class="finding-header">
+        <span class="finding-sev sev-high-badge">HIGH</span>
+        <span class="finding-name">SQL Injection Vulnerability</span>
+        <span class="finding-cat">injection</span>
+        <span class="finding-arrow">›</span>
+      </div>
+    </div>
+
+    <!-- Finding 3 — Medium, collapsed -->
+    <div class="finding med">
+      <div class="finding-header">
+        <span class="finding-sev sev-med-badge">MEDIUM</span>
+        <span class="finding-name">Missing Content-Security-Policy Header</span>
+        <span class="finding-cat">headers</span>
+        <span class="finding-arrow">›</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM: Rules + History -->
+  <div class="bottom-row">
+    <div class="bottom-card">
+      <div class="bchead">
+        <span class="bchead-title">⚙ Detection Rules Library</span>
+        <span class="bchead-arrow">▾ 50 rules</span>
+      </div>
+      <div class="bc-body">
+        <div class="rule-row"><span class="rule-name">AWS Access Key</span><span class="rule-sev sev-crit-badge">CRIT</span></div>
+        <div class="rule-row"><span class="rule-name">Private Key / PEM</span><span class="rule-sev sev-crit-badge">CRIT</span></div>
+        <div class="rule-row"><span class="rule-name">JWT Token</span><span class="rule-sev sev-high-badge">HIGH</span></div>
+        <div class="rule-row"><span class="rule-name">Stripe Secret Key</span><span class="rule-sev sev-crit-badge">CRIT</span></div>
+        <div style="color:#3d1a1a;font-size:9px;text-align:center;margin-top:8px;">+ 46 more rules...</div>
+      </div>
+    </div>
+    <div class="bottom-card">
+      <div class="bchead">
+        <span class="bchead-title">🕒 Scan History</span>
+        <span class="bchead-arrow">▾ 3 scans</span>
+      </div>
+      <div class="bc-body">
+        <div class="rule-row"><span class="rule-name">example.com — 2 critical</span><span style="font-size:9px;color:#3d1a1a;">10 min ago</span></div>
+        <div class="rule-row"><span class="rule-name">api.example.com — clean</span><span style="font-size:9px;color:#3d1a1a;">1 hr ago</span></div>
+        <div class="rule-row"><span class="rule-name">staging.example.com — 1 high</span><span style="font-size:9px;color:#3d1a1a;">Yesterday</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="color:#444;font-size:10px;text-align:center;margin-top:16px;letter-spacing:1px;">FULL DESIGN PREVIEW — Approve this or request changes before implementation begins</p>
+
+</body>
+</html>

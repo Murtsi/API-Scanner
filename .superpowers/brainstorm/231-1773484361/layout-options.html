@@ -1,0 +1,116 @@
+<h2>API Scanner — Layout Redesign Directions</h2>
+<p class="subtitle">Three approaches inspired by CyberGuard's clean card structure. All use your red/black palette. Which direction feels right?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0000;padding:12px;font-family:monospace;border-radius:6px;">
+      <div style="background:#160000;border:1px solid rgba(255,0,0,0.25);border-radius:6px;padding:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="color:#FF0000;font-size:11px;font-weight:bold;letter-spacing:2px;">⬡ API SCANNER</span>
+        <div style="display:flex;gap:8px;">
+          <span style="background:rgba(255,0,0,0.15);border:1px solid rgba(255,0,0,0.3);color:#ff6060;font-size:9px;padding:2px 8px;border-radius:12px;">50 RULES</span>
+          <span style="background:rgba(255,0,0,0.15);border:1px solid rgba(255,0,0,0.3);color:#ff6060;font-size:9px;padding:2px 8px;border-radius:12px;">26 METHODS</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:6px;height:110px;">
+        <div style="background:#0e0000;border:1px solid rgba(255,0,0,0.18);border-radius:5px;padding:8px;">
+          <div style="color:#8a5050;font-size:8px;margin-bottom:5px;letter-spacing:1px;">TARGET</div>
+          <div style="background:#160000;border:1px solid rgba(255,0,0,0.15);border-radius:3px;height:18px;margin-bottom:4px;"></div>
+          <div style="color:#8a5050;font-size:8px;margin-bottom:3px;margin-top:6px;letter-spacing:1px;">SCAN MODE</div>
+          <div style="display:flex;gap:3px;flex-wrap:wrap;">
+            <div style="background:rgba(255,0,0,0.2);border:1px solid rgba(255,0,0,0.4);color:#FF0000;font-size:7px;padding:2px 5px;border-radius:3px;">PASSIVE</div>
+            <div style="background:transparent;border:1px solid rgba(255,0,0,0.15);color:#8a5050;font-size:7px;padding:2px 5px;border-radius:3px;">ACTIVE</div>
+            <div style="background:transparent;border:1px solid rgba(255,0,0,0.15);color:#8a5050;font-size:7px;padding:2px 5px;border-radius:3px;">RECON</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#FF0000,#950101);color:#fff;font-size:8px;padding:4px;border-radius:3px;text-align:center;margin-top:8px;font-weight:bold;">START SCAN</div>
+        </div>
+        <div style="background:#0e0000;border:1px solid rgba(255,0,0,0.18);border-radius:5px;padding:8px;display:flex;align-items:center;justify-content:center;">
+          <div style="text-align:center;">
+            <div style="color:#3d1a1a;font-size:9px;letter-spacing:2px;">AWAITING SCAN</div>
+            <div style="color:#FF0000;font-size:22px;font-weight:bold;opacity:0.15;margin:4px 0;">⬡</div>
+            <div style="color:#3d1a1a;font-size:8px;">Configure left, run scan</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Compact Command Center</h3>
+      <p>Left sidebar stays narrow for controls, right panel is the stage. Methods collapsed into clean "Scan Mode" toggle tabs. Minimal, fast to use. Best for power users who know what they want.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0000;padding:12px;font-family:monospace;border-radius:6px;">
+      <div style="background:#160000;border:1px solid rgba(255,0,0,0.25);border-radius:6px;padding:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="color:#FF0000;font-size:11px;font-weight:bold;letter-spacing:2px;">⬡ API SCANNER</span>
+        <span style="color:#8a5050;font-size:9px;">50 detection rules · 26 attack methods</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px;">
+        <div style="background:#0e0000;border:1px solid rgba(255,0,0,0.18);border-radius:5px;padding:7px;">
+          <div style="color:#8a5050;font-size:8px;letter-spacing:1px;margin-bottom:4px;">TARGET URL</div>
+          <div style="background:#160000;border:1px solid rgba(255,0,0,0.15);border-radius:3px;height:16px;margin-bottom:6px;"></div>
+          <div style="background:linear-gradient(135deg,#FF0000,#950101);color:#fff;font-size:8px;padding:3px;border-radius:3px;text-align:center;font-weight:bold;">START SCAN</div>
+        </div>
+        <div style="background:#0e0000;border:1px solid rgba(255,0,0,0.18);border-radius:5px;padding:7px;">
+          <div style="color:#8a5050;font-size:8px;letter-spacing:1px;margin-bottom:4px;">SCAN METHODS</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">
+            <div style="background:rgba(255,96,96,0.15);border:1px solid rgba(255,96,96,0.3);color:#ff6060;font-size:7px;padding:2px 4px;border-radius:3px;text-align:center;">PASSIVE</div>
+            <div style="background:rgba(255,160,64,0.12);border:1px solid rgba(255,160,64,0.25);color:#ffa040;font-size:7px;padding:2px 4px;border-radius:3px;text-align:center;">RECON</div>
+            <div style="background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.2);color:#ff4444;font-size:7px;padding:2px 4px;border-radius:3px;text-align:center;">INJECTION</div>
+            <div style="background:rgba(255,85,34,0.1);border:1px solid rgba(255,85,34,0.2);color:#ff5522;font-size:7px;padding:2px 4px;border-radius:3px;text-align:center;">XSS/CORS</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#0e0000;border:1px solid rgba(255,0,0,0.18);border-radius:5px;padding:7px;height:52px;display:flex;align-items:center;justify-content:center;">
+        <span style="color:#3d1a1a;font-size:9px;letter-spacing:2px;">RESULTS APPEAR HERE</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Dashboard Grid (CyberGuard-inspired)</h3>
+      <p>Top row has target + method cards side by side. Full-width results below. Methods shown as labeled category cards — tap to expand. Balanced, informative, works well for beginners and experts. Closest to the reference screenshots.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0000;padding:12px;font-family:monospace;border-radius:6px;">
+      <div style="background:#160000;border:1px solid rgba(255,0,0,0.25);border-radius:6px;padding:6px 8px;margin-bottom:6px;display:flex;justify-content:space-between;">
+        <span style="color:#FF0000;font-size:11px;font-weight:bold;letter-spacing:2px;">⬡ API SCANNER</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="color:#8a5050;font-size:8px;cursor:pointer;padding:2px 8px;border-bottom:1px solid #FF0000;">SCAN</span>
+          <span style="color:#3d1a1a;font-size:8px;padding:2px 8px;">RULES</span>
+          <span style="color:#3d1a1a;font-size:8px;padding:2px 8px;">HISTORY</span>
+        </div>
+      </div>
+      <div style="background:#0e0000;border:1px solid rgba(255,0,0,0.18);border-radius:5px;padding:8px;margin-bottom:5px;">
+        <div style="display:flex;gap:6px;margin-bottom:5px;">
+          <div style="flex:1;background:#160000;border:1px solid rgba(255,0,0,0.15);border-radius:3px;height:16px;"></div>
+          <div style="background:linear-gradient(135deg,#FF0000,#950101);color:#fff;font-size:8px;padding:3px 10px;border-radius:3px;font-weight:bold;white-space:nowrap;">SCAN</div>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <div style="flex:1;background:#120000;border:1px solid rgba(255,96,96,0.2);border-radius:3px;padding:4px 6px;text-align:center;">
+            <div style="color:#ff6060;font-size:9px;font-weight:bold;">PASSIVE</div>
+            <div style="color:#3d1a1a;font-size:7px;">6 checks</div>
+          </div>
+          <div style="flex:1;background:#120000;border:1px solid rgba(255,160,64,0.2);border-radius:3px;padding:4px 6px;text-align:center;">
+            <div style="color:#ffa040;font-size:9px;font-weight:bold;">RECON</div>
+            <div style="color:#3d1a1a;font-size:7px;">3 checks</div>
+          </div>
+          <div style="flex:1;background:#120000;border:1px solid rgba(255,0,0,0.2);border-radius:3px;padding:4px 6px;text-align:center;">
+            <div style="color:#FF0000;font-size:9px;font-weight:bold;">ACTIVE</div>
+            <div style="color:#3d1a1a;font-size:7px;">26 tests</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#0e0000;border:1px solid rgba(255,0,0,0.18);border-radius:5px;padding:8px;height:42px;display:flex;align-items:center;justify-content:center;">
+        <span style="color:#3d1a1a;font-size:9px;letter-spacing:2px;">RESULTS PANEL</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Tab-Nav Workflow</h3>
+      <p>Header tabs separate Scan / Rules / History into distinct pages. Scan page is clean: target bar on top, three method cards below (Passive / Recon / Active), results fill the rest. Cleanest flow, hides complexity well. Good for beginners.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px;">Click your preferred direction — or let me know in the terminal if you want a mix of ideas.</p>

@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import Header from './components/Header'
 import ScannerPanel from './components/ScannerPanel'
+import MethodsPanel from './components/MethodsPanel'
 import ResultsPanel from './components/ResultsPanel'
 import HistoryPanel from './components/HistoryPanel'
 import RulesPanel from './components/RulesPanel'
@@ -33,10 +34,11 @@ function App() {
   }, [hydrateFromHistory])
 
   return (
-    <div id="app">
+    <div id="app" className="app-layout">
       <Header />
 
-      <main className="main-grid">
+      {/* Top row: Target card + Methods card */}
+      <div className="top-row">
         <div className="col-scanner">
           <ScannerPanel
             urlsInput={urlsInput}
@@ -53,17 +55,27 @@ function App() {
             onClear={handleClear}
           />
         </div>
-
-        <div className="col-results">
-          <ResultsPanel
-            results={results}
+        <div className="col-methods">
+          <MethodsPanel
+            options={options}
+            setOptions={setOptions}
             isScanning={isScanning}
-            onExportJson={() => exportJson(results)}
-            onExportCsv={() => exportCsv(results)}
+            passiveModules={PASSIVE_MODULES}
           />
         </div>
-      </main>
+      </div>
 
+      {/* Full-width results */}
+      <div className="results-row">
+        <ResultsPanel
+          results={results}
+          isScanning={isScanning}
+          onExportJson={() => exportJson(results)}
+          onExportCsv={() => exportCsv(results)}
+        />
+      </div>
+
+      {/* Bottom panels */}
       <div className="bottom-panels">
         <RulesPanel />
         <HistoryPanel
